@@ -1,46 +1,225 @@
 <!DOCTYPE html>
-<html lang="en">
-
+<html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Simulador de Escalonamento – Hospital Digital</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
-        integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
 
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <style>
+        body {
+            background: #f5f7fa;
+        }
+
+        .card {
+            border-radius: 12px;
+            padding: 20px;
+        }
+
+        .header-title {
+            font-weight: 700;
+            font-size: 1.7rem;
+        }
+
+        #quantumSection {
+            display: none;
+        }
+    </style>
 </head>
 
 <body>
-    <form>
 
-        <div class="form-group">
-            <label for="exampleFormControlSelect1">Selecione o Algoritimo</label>
-            <select class="form-control" id="selectAlgoritmo">
-                <option>Round Robin (RR)</option>
-                <option>Shortest Job First (SJF)</option>
-                <option>Shortest Remaining Time First (SRTF)</option>
-                <option>Prioridade Não Preemptivo</option>
-            </select>
-        </div>
-        <div class="form-group">
-            <label for="exampleFormControlSelect2">Selecione o o número de núcleos</label>
-            <select class="form-control" id="selectAlgoritmo">
-                <option>1</option>
-                <option>2</option>
-                <option>3</option>
-                <option>4</option>
-            </select>
-        </div>
-        <div class="form-group">
-            <label for="exampleFormControlInput1">Informe o Quantum</label>
-            <input type="email" class="form-control" id="quantum" placeholder="Quantum">
-        </div>
+<div class="container mt-5">
+
+    <!-- Título -->
+    <div class="text-center mb-4">
+        <h1 class="header-title">Simulador de Escalonamento – Hospital Digital</h1>
+        <p class="text-muted">Configure os parâmetros da simulação</p>
+    </div>
+
+    <!-- Card do formulário -->
+    <div class="card shadow-sm">
+
+        <form action="/simular" method="POST">
 
 
-    </form>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
-        integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
-        crossorigin="anonymous"></script>
+        <!-- Algoritmo -->
+            <div class="mb-3">
+                <label class="form-label">Selecione o Algoritmo</label>
+                <select class="form-select" id="selectAlgoritmo">
+                    <option value="RR">Round Robin (RR)</option>
+                    <option value="SJF">Shortest Job First (SJF)</option>
+                    <option value="SRTF">Shortest Remaining Time First (SRTF)</option>
+                    <option value="PRIORIDADE">Prioridade Não Preemptivo</option>
+                </select>
+            </div>
+
+            <!-- Núcleos -->
+            <div class="mb-3">
+                <label class="form-label">Selecione o Número de Núcleos (Médicos)</label>
+                <select class="form-select" id="selectNucleos">
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="4">4</option>
+                </select>
+            </div>
+
+            <!-- Quantum (visível só se algoritmo == RR) -->
+            <div class="mb-3" id="quantumSection">
+                <label class="form-label">Informe o Quantum</label>
+                <input type="number" min="1" class="form-control" id="quantum" placeholder="Ex: 4">
+            </div>
+
+            <!-- Botão principal -->
+            <div class="text-center mt-4">
+                <button type="submit" class="btn btn-primary px-4">
+                    Iniciar Simulação
+                </button>
+            </div>
+            <!-- Lista de Pacientes -->
+            <hr class="my-4">
+
+            <h5 class="mb-3">Pacientes</h5>
+
+            <div class="row g-3">
+
+                <div class="col-md-3">
+                    <label class="form-label">Tempo de Chegada (Arrival Time)</label>
+                    <input type="number" min="0" class="form-control" id="arrivalInput">
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label">Duração (Burst Time)</label>
+                    <input type="number" min="1" class="form-control" id="burstInput">
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label">Prioridade</label>
+                    <input type="number" min="1" class="form-control" id="priorityInput">
+                </div>
+
+                <div class="col-md-3 d-flex align-items-end">
+                    <button type="button" class="btn btn-success w-100" id="addPatientBtn">
+                        Adicionar Paciente
+                    </button>
+                </div>
+
+            </div>
+
+            <!-- Tabela de pacientes adicionados -->
+            <div class="mt-4">
+                <table class="table table-bordered table-striped">
+                    <thead class="table-light">
+                    <tr>
+                        <th>#</th>
+                        <th>Arrival Time</th>
+                        <th>Burst Time</th>
+                        <th>Prioridade</th>
+                        <th>Ação</th>
+                    </tr>
+                    </thead>
+
+                    <tbody id="patientTableBody">
+                    <!-- Pacientes aparecerão aqui automaticamente -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Campo oculto que será enviado ao backend -->
+            <input type="hidden" name="pacientes" id="pacientesJson">
+
+
+        </form>
+
+    </div>
+
+</div>
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+    // Exibe o campo Quantum apenas se o algoritmo selecionado for RR
+    const selectAlgoritmo = document.getElementById("selectAlgoritmo");
+    const quantumSection = document.getElementById("quantumSection");
+
+    selectAlgoritmo.addEventListener("change", function () {
+        if (this.value === "RR") {
+            quantumSection.style.display = "block";
+        } else {
+            quantumSection.style.display = "none";
+        }
+    });
+
+        const patients = []; // lista enviada ao backend
+
+        const addBtn = document.getElementById("addPatientBtn");
+        const tableBody = document.getElementById("patientTableBody");
+        const pacientesJson = document.getElementById("pacientesJson");
+
+        addBtn.addEventListener("click", () => {
+        const arrival = document.getElementById("arrivalInput").value;
+        const burst = document.getElementById("burstInput").value;
+        const priority = document.getElementById("priorityInput").value;
+
+        if (!arrival || !burst || !priority) {
+        alert("Preencha todos os campos do paciente!");
+        return;
+    }
+
+        // Criar paciente
+        const patient = {
+        arrival: Number(arrival),
+        burst: Number(burst),
+        priority: Number(priority)
+    };
+
+        patients.push(patient);
+
+        // Atualiza campo oculto
+        pacientesJson.value = JSON.stringify(patients);
+
+        // Renderiza na tabela
+        renderTable();
+
+        // Limpa os inputs
+        document.getElementById("arrivalInput").value = "";
+        document.getElementById("burstInput").value = "";
+        document.getElementById("priorityInput").value = "";
+    });
+
+        function removePatient(index) {
+        patients.splice(index, 1);
+        pacientesJson.value = JSON.stringify(patients);
+        renderTable();
+    }
+
+        function renderTable() {
+        tableBody.innerHTML = "";
+
+        patients.forEach((p, i) => {
+        tableBody.innerHTML += `
+                <tr>
+                    <td>${i + 1}</td>
+                    <td>${p.arrival}</td>
+                    <td>${p.burst}</td>
+                    <td>${p.priority}</td>
+                    <td>
+                        <button type="button" class="btn btn-sm btn-danger" onclick="removePatient(${i})">
+                            Remover
+                        </button>
+                    </td>
+                </tr>
+            `;
+    });
+    }
+
+
+
+</script>
+
+
 </body>
-
 </html>

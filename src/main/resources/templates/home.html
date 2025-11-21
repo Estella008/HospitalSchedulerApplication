@@ -42,13 +42,13 @@
     <!-- Card do formulário -->
     <div class="card shadow-sm">
 
-        <form action="/simular" method="POST">
+        <form id="simulador" method="POST">
 
 
         <!-- Algoritmo -->
             <div class="mb-3">
                 <label class="form-label">Selecione o Algoritmo</label>
-                <select class="form-select" id="selectAlgoritmo">
+                <select class="form-select" id="selectAlgoritmo" name="selectAlgoritmo">
                     <option value="RR">Round Robin (RR)</option>
                     <option value="SJF">Shortest Job First (SJF)</option>
                     <option value="SRTF">Shortest Remaining Time First (SRTF)</option>
@@ -59,7 +59,7 @@
             <!-- Núcleos -->
             <div class="mb-3">
                 <label class="form-label">Selecione o Número de Núcleos (Médicos)</label>
-                <select class="form-select" id="selectNucleos">
+                <select class="form-select" id="selectNucleos" name="selectNucleos">
                     <option value="1">1</option>
                     <option value="2">2</option>
                     <option value="4">4</option>
@@ -69,7 +69,7 @@
             <!-- Quantum (visível só se algoritmo == RR) -->
             <div class="mb-3" id="quantumSection">
                 <label class="form-label">Informe o Quantum</label>
-                <input type="number" min="1" class="form-control" id="quantum" placeholder="Ex: 4">
+                <input type="number" min="1" class="form-control" id="quantum" name="quantum" placeholder="Ex: 4">
             </div>
 
             <!-- Botão principal -->
@@ -145,6 +145,25 @@
     const selectAlgoritmo = document.getElementById("selectAlgoritmo");
     const quantumSection = document.getElementById("quantumSection");
 
+    const form = document.getElementById("simulador");
+
+        form.addEventListener("submit", async (event) => {
+            event.preventDefault(); // evita recarregar a página
+
+            // Envia como application/x-www-form-urlencoded compatível com @RequestParam
+            const formData = new FormData(form);
+            const body = new URLSearchParams(formData);
+
+            const response = await fetch("http://localhost:8081/simular", {
+                method: "POST",
+                body: body
+            });
+
+            // opcional: ler resposta (texto ou json)
+            // const text = await response.text();
+            // console.log('Resposta:', text);
+
+        })
     selectAlgoritmo.addEventListener("change", function () {
         if (this.value === "RR") {
             quantumSection.style.display = "block";

@@ -6,21 +6,22 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import com.example.hospitalscheduler.service.EscalonadorService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.RestController;
+
 
 import java.util.List;
 import java.util.Map;
-
-@Controller
+@CrossOrigin(origins = "*")
+@RestController
 public class SimulacaoController {
 
     @Autowired
     private EscalonadorService escalonadorService;
 
     @PostMapping("/simular")
-    @ResponseBody // devolve JSON
     public Object simular(@RequestParam Map<String, String> params) throws Exception {
+        System.out.println("Requisitou");
 
         String algoritmo = params.get("selectAlgoritmo");
         int nucleos = Integer.parseInt(params.get("selectNucleos"));

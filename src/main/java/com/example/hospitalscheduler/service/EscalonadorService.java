@@ -7,7 +7,6 @@ import java.util.List;
 
 @Service
 public class EscalonadorService {
-
     public Object executar(String algoritmo, int nucleos, Integer quantum, List<Paciente> pacientes) {
 
         switch (algoritmo) {
@@ -25,7 +24,8 @@ public class EscalonadorService {
     }
 
     private Object executarRR(List<Paciente> pacientes, Integer quantum, int nucleos) {
-        // aqui você implementa seu algoritmo DE VERDADE
+        RoundRobin roundRobin = new RoundRobin(quantum, pacientes, nucleos);
+        roundRobin.executar();
         return "RR executado com quantum = " + quantum + " e " + nucleos + " núcleos";
     }
 

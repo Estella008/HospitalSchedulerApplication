@@ -7,39 +7,15 @@ import java.util.List;
 
 @Service
 public class EscalonadorService {
-    public Object executar(String algoritmo, int nucleos, Integer quantum, List<Paciente> pacientes) {
 
-        switch (algoritmo) {
-            case "RR":
-                return executarRR(pacientes, quantum, nucleos);
-            case "SJF":
-                return executarSJF(pacientes, nucleos);
-            case "SRTF":
-                return executarSRTF(pacientes, nucleos);
-            case "PRIORIDADE":
-                return executarPrioridade(pacientes, nucleos);
-            default:
-                throw new IllegalArgumentException("Algoritmo não reconhecido");
+
+    public void start(String algoritimo, int nucleos, Integer quantum, List<Paciente> pacientes) {
+        for (int i = 1; i <= nucleos; i++) {
+            if(!Medico.iniciou) {
+                new Thread(new Medico(algoritimo, quantum, pacientes)).start();
+            }else{
+                new Thread(new Medico());
+            }
         }
-    }
-
-    private Object executarRR(List<Paciente> pacientes, Integer quantum, int nucleos) {
-        RoundRobin roundRobin = new RoundRobin(quantum, pacientes, nucleos);
-        roundRobin.executar();
-        return "RR executado com quantum = " + quantum + " e " + nucleos + " núcleos";
-    }
-
-    private Object executarSJF(List<Paciente> pacientes, int nucleos) {
-        ShortestJobFirst sjf = new ShortestJobFirst(pacientes, nucleos);
-        sjf.executar();
-        return "SJF (Shortest Job First) executado com " + nucleos + " núcleos.";
-    }
-
-    private Object executarSRTF(List<Paciente> pacientes, int nucleos) {
-        return "SRTF executado";
-    }
-
-    private Object executarPrioridade(List<Paciente> pacientes, int nucleos) {
-        return "Prioridade executado";
     }
 }

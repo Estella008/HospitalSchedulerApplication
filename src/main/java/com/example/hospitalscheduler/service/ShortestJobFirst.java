@@ -2,86 +2,51 @@ package com.example.hospitalscheduler.service;
 
 import com.example.hospitalscheduler.DTO.Paciente;
 
-import java.util.Comparator;
-import java.util.List;
-import java.util.PriorityQueue;
-
 public class ShortestJobFirst {
-    private List<Paciente> pacientes;
-    private int nucleos;
+    private Paciente paciente;
 
-    public ShortestJobFirst(List<Paciente> pacientes, int nucleos) {
-        this.pacientes = pacientes;
-        this.nucleos = nucleos;
+    public ShortestJobFirst(Paciente paciente) {
+        this.paciente = paciente;
     }
 
     public void executar() {
-        //fila de prioridade ordenada menor duração primeiro
-        //se houver empate, usa a ordem de chegada
-        PriorityQueue<Paciente> filaProcessos = new PriorityQueue<>(
-                Comparator.comparingInt(Paciente::getBurst)
-                        .thenComparingInt(Paciente::getArrival)
-        );
+        // Inicializa o tempo restante
+        paciente.setRemaining(paciente.getBurst());
 
-        //ordenando a lista original por ordem de chegada para facilitar a inserção na simulação
-        pacientes.sort(Comparator.comparingInt(Paciente::getArrival));
+        // Tempo atual começa no momento de chegada do paciente
+        int tempoAtual = paciente.getArrival();
 
-        int tempoAtual = 0;
-        int finalizados = 0;
-        int total = pacientes.size();
-        int indexChegada = 0;
+        System.out.println("      Início da simulação SJF (Shortest Job First)      ");
+        System.out.println("Paciente: " + paciente.getNome());
+        System.out.println("Tempo de chegada: " + paciente.getArrival());
+        System.out.println("Burst time: " + paciente.getBurst());
+        System.out.println();
 
-        for (Paciente p : pacientes) {
-            p.setRemaining(p.getBurst());
-        }
+        System.out.println("Tempo " + tempoAtual + ":");
+        System.out.println("Paciente " + paciente.getNome() + " iniciado (Burst: " + paciente.getBurst() + ")");
+        System.out.println();
 
-        //array representando os núcleos, se null, o núcleo tá livre.
-        Paciente[] cpus = new Paciente[nucleos];
+        // Executar o processo até completar
+        while (paciente.getRemaining() > 0) {
+            // Executa 1 unidade de tempo
+            paciente.setRemaining(paciente.getRemaining() - 1);
 
-        System.out.println("Início da simulação SJF (Shortest Job First)");
+            System.out.println("Tempo " + tempoAtual + ":");
+            System.out.println("Executando " + paciente.getNome() +
+                    " (restante=" + paciente.getRemaining() + ")");
 
-        while (finalizados < total) {
-            System.out.println("\nTempo " + tempoAtual + ":");
-
-            //adicionar processos que chegaram no tempo atual na fila de prontos
-            while (indexChegada < total && pacientes.get(indexChegada).getArrival() <= tempoAtual) {
-                Paciente p = pacientes.get(indexChegada);
-                filaProcessos.offer(p);
-                System.out.println("Chegada de novo processo: " + p.getNome() + " (Burst: " + p.getBurst() + ")");
-                indexChegada++;
-            }
-
-            //alocar processos nas CPUs livres
-            for (int i = 0; i < nucleos; i++) {
-                if (cpus[i] == null && !filaProcessos.isEmpty()) {
-                    Paciente p = filaProcessos.poll();
-                    cpus[i] = p;
-                    System.out.println("CPU " + i + " iniciou " + p.getNome() + " (Burst: " + p.getBurst() + ")");
-                }
-            }
-
-            //executar 1 qantum em cada CPU ocupada
-            for (int i = 0; i < nucleos; i++) {
-                Paciente atual = cpus[i];
-
-                if (atual != null) {
-                    atual.setRemaining(atual.getRemaining() - 1);
-
-                    System.out.println("CPU " + i + " executando " + atual.getNome() +
-                            " (restante=" + atual.getRemaining() + ")");
-
-                    //verifica se terminou
-                    if (atual.getRemaining() == 0) {
-                        System.out.println(atual.getNome() + " FINALIZADO no tempo " + (tempoAtual + 1));
-                        cpus[i] = null; // Libera a CPU
-                        finalizados++;
-                    }
-                }
-            }
-
+            // Avança o tempo
             tempoAtual++;
+
+            // Verifica se terminou
+            if (paciente.getRemaining() == 0) {
+                System.out.println(paciente.getNome() + " FINALIZADO no tempo " + tempoAtual);
+            }
+
+            System.out.println();
         }
 
-        System.out.println("\nFim da simulação SJF");
+        System.out.println("    Fim da simulação SJF     ");
+        System.out.println("Tempo total de execução: " + (tempoAtual - paciente.getArrival()) + " unidades");
     }
 }

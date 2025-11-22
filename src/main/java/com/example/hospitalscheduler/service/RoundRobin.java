@@ -3,23 +3,19 @@ package com.example.hospitalscheduler.service;
 import com.example.hospitalscheduler.DTO.Paciente;
 
 import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public class RoundRobin {
 
     private int quantum;
-    private List<Paciente> pacientes;
-    private int nucleos;
+    private Paciente paciente;
     private int trocasContexto = 0;
     private int tempoTotalSimulacao = 0;
-    private int[] tempoOcupadoMedicos;
-
+    private int tempoOcupadoMedico = 0;
 
     //construtor
-    public RoundRobin(int quantum, List<Paciente> pacientes, int nucleos) {
+    public RoundRobin(int quantum, Paciente paciente) {
         this.quantum = quantum;
-        this.pacientes = pacientes;
-        this.nucleos = nucleos;
+        this.paciente = paciente;
     }
 
     //cabeçalho
@@ -27,8 +23,8 @@ public class RoundRobin {
         System.out.println("\n========================================");
         System.out.println("        EXECUÇÃO ROUND ROBIN");
         System.out.println("========================================");
-        System.out.println("Quantidade de Médicos (CPUs): " + nucleos);
-        System.out.println("Quantidade de Pacientes: " + pacientes.size());
+        System.out.println("Quantidade de Médicos (CPUs): 1");
+        System.out.println("Quantidade de Pacientes: 1");
         System.out.println("Quantum: " + quantum);
         System.out.println("========================================\n");
     }
@@ -41,196 +37,110 @@ public class RoundRobin {
     }
 
     //mostra se médico esta ocioso ou executando algum processo (paciente)
-    private void printExecucao(Paciente[] cpus) {
+    private void printExecucao(Paciente cpu) {
         System.out.println("Médicos em Execução:");
-        for (int i = 0; i < cpus.length; i++) {
-            if (cpus[i] != null)
-                System.out.println("   • Médico " + i + " → " + cpus[i].getNome());
-            else
-                System.out.println("   • Médico " + i + " → (ocioso)");
-        }
+        if (cpu != null)
+            System.out.println("   • Médico 0 → " + cpu.getNome());
+        else
+            System.out.println("   • Médico 0 → (ocioso)");
     }
 
     //exibe os estados da CPU ao longo do tempo
-    private void printGantt(Map<Integer, StringBuilder> gantt) {
+    private void printGantt(StringBuilder gantt) {
         System.out.println("\nGANTT POR MÉDICO:");
-        for (int i = 0; i < gantt.size(); i++) {
-            System.out.println("CPU " + i + ": " + gantt.get(i));
-        }
+        System.out.println("CPU 0: " + gantt);
     }
 
     public void executar() {
 
         printHeader();
-        tempoOcupadoMedicos = new int[nucleos];
 
         //criando fila de processos
         Queue<Paciente> filaProcessos = new LinkedList<>();
-        //ordenando cada processo por ordem de chegada
-        pacientes.sort((a, b) -> Integer.compare(a.getArrival(), b.getArrival()));
+
         //simulação de um relógio
         int tempoAtual = 0;
-        //AtomicInteger garante que não vai dar conflito
-        AtomicInteger finalizados = new AtomicInteger(0);
-        //analisa quantos processos tem
-        int total = pacientes.size();
-        //inidce para percorrer a lista de ordem de chegada
-        int indexChegada = 0;
+        //quantidade de processos finalizados
+        int finalizados = 0;
 
+        //inicializando a marcação do tempo restante do paciente
+        paciente.setRemaining(paciente.getBurst());
 
-        //inicializando a marcação do tempo restante de cada paciente
-        for (Paciente p : pacientes) {
-            p.setRemaining(p.getBurst());
-        }
-        //array de pacientes associado a um nucleo da cpu
-        Paciente[] cpus = new Paciente[nucleos];
-        //controla o quantum de cada processo que esta sendo processado
-        int[] quantumRestante = new int[nucleos];
+        //paciente associado ao médico (cpu)
+        Paciente cpu = null;
+        //controla o quantum do processo que esta sendo processado
+        int quantumRestante = 0;
 
         //para formar o Gantt
-        Map<Integer, StringBuilder> gantt = new HashMap<>();
-        for (int i = 0; i < nucleos; i++){
-            gantt.put(i, new StringBuilder());
-        }
+        StringBuilder gantt = new StringBuilder();
 
-        //criando array de threads
-        Thread[] medicos = new Thread[nucleos];
+        System.out.println("--------------------------------------");
+        System.out.println("Tempo " + tempoAtual);
+        System.out.println("--------------------------------------");
 
-        //criando identificação para cada médico
-        for (int i = 0; i < nucleos; i++) {
-            final int idCPU = i;
+        // Loop principal
+        while (finalizados < 1) {
 
-            //para cada posição do array é criada uma thread
-            medicos[i] = new Thread(() -> {
-
-                while (true) {
-                    //armazena paciente que médico irá atender
-                    Paciente atual;
-
-                    //sincroniza para duas CPUs não mexam nela ao mesmo tempo
-                    synchronized (filaProcessos) {
-                        //verifica se todos os pacientes foram atendidos
-                        if (finalizados.get() >= total) break;
-
-                        //CPU livre, pega outro paciente da fila
-                        if (cpus[idCPU] == null && !filaProcessos.isEmpty()) {
-                            //retira da fila
-                            Paciente p = filaProcessos.poll();
-                            //coloca na cpu
-                            cpus[idCPU] = p;
-                            //inicializa o quantum
-                            quantumRestante[idCPU] = quantum;
-
-                            //exibe a troca de contexto
-                            System.out.println("TROCA DE CONTEXTO → Médico " + idCPU +
-                                    " iniciou " + p.getNome());
-                            //soma para indicar que teve uma troca de contexto
-                            trocasContexto++;
-                        }
-
-                        //atribui paciente a variável
-                        atual = cpus[idCPU];
-                    }
-
-                    if (atual != null) {
-                        //simula 1s
-                        try {
-                            Thread.sleep(100);
-                        } catch (Exception e) {
-                        }
-
-                        //diminui o quantum e o burst
-                        atual.setRemaining(atual.getRemaining() - 1);
-                        quantumRestante[idCPU]--;
-                        tempoOcupadoMedicos[idCPU]++;
-
-                        //grava qual paciente foi atendido pelo médico
-                        gantt.get(idCPU).append(atual.getNome()).append("|");
-
-                        //exibe como está a execução
-                        System.out.println("Médico " + idCPU + " executando " + atual.getNome() +
-                                " (restante=" + atual.getRemaining() +
-                                ", quantum=" + quantumRestante[idCPU] + ")");
-
-
-                        //analisa se o paciente terminou
-                        if (atual.getRemaining() == 0) {
-                            System.out.println("FINALIZADO → " + atual.getNome());
-                            cpus[idCPU] = null;
-                            finalizados.incrementAndGet();
-                            continue;
-                        }
-
-                        //volta o processo para a fila quando o quantum acaba
-                        if (quantumRestante[idCPU] == 0) {
-                            System.out.println("Quantum acabou → " + atual.getNome() +
-                                    " volta para fila");
-                            synchronized (filaProcessos) {
-                                filaProcessos.add(atual);
-                                cpus[idCPU] = null;
-                            }
-                        }
-
-                        //fica ociosa e espera meio segundo para tentar pegar outro processo
-                    } else {
-                        gantt.get(idCPU).append("ocioso|");
-                        try {
-                            Thread.sleep(50);
-                        } catch (Exception e) {
-                        }
-                    }
-
-                }
-            });
-
-            //médico começa a executar em paralelo
-            medicos[i].start();
-        }
-        while (true) {
-            //indica o tempo atual
-            System.out.println("\n--------------------------------------");
-            System.out.println("Tempo " + tempoAtual);
-            System.out.println("--------------------------------------");
-
-            //adiciona processos que chegaram no tempo atual
-            while (indexChegada < total && pacientes.get(indexChegada).getArrival() <= tempoAtual) {
-                Paciente p = pacientes.get(indexChegada);
-                //sincroniza pois a fila está sendo acessada por muitas threads ao mesmo tempo
-                synchronized (filaProcessos) {
-                    filaProcessos.add(p);
-                }
-                //exibe que um novo paciente chegou
-                System.out.println("Nova chegada: " + p.getNome());
-                indexChegada++;
-            }
-            //sincroniza a fila para exibir seu estado atual
-            synchronized (filaProcessos) {
-                printFila(filaProcessos);
-                printExecucao(cpus);
-
-                if (finalizados.get() >= total) break;
+            //adiciona paciente quando chegar seu tempo de chegada
+            if (tempoAtual == paciente.getArrival()) {
+                filaProcessos.add(paciente);
+                System.out.println("Nova chegada: " + paciente.getNome());
             }
 
+            //alocar paciente ao médico se estiver livre
+            if (cpu == null && !filaProcessos.isEmpty()) {
+                //retorna processo e o tira da fila
+                Paciente p = filaProcessos.poll();
+                cpu = p;
+                quantumRestante = quantum;
+
+                System.out.println("TROCA DE CONTEXTO → Médico 0 iniciou " + p.getNome());
+                trocasContexto++;
+            }
+
+            //executar 1 unidade de tempo
+            if (cpu != null) {
+                cpu.setRemaining(cpu.getRemaining() - 1);
+                quantumRestante--;
+                tempoOcupadoMedico++;
+
+                //grava qual paciente foi atendido pelo médico
+                gantt.append(cpu.getNome()).append("|");
+
+                System.out.println("Médico 0 executando " + cpu.getNome() +
+                        " (restante=" + cpu.getRemaining() +
+                        ", quantum=" + quantumRestante + ")");
+
+                //analisa se o paciente terminou
+                if (cpu.getRemaining() == 0) {
+                    System.out.println("FINALIZADO → " + cpu.getNome());
+                    cpu = null;
+                    finalizados++;
+                }
+                //finaliza o quantum do processo
+                else if (quantumRestante == 0) {
+                    System.out.println("Quantum acabou → " + cpu.getNome() + " volta para fila");
+                    filaProcessos.add(cpu);
+                    cpu = null;
+                }
+            } else {
+                //médico ocioso
+                gantt.append("ocioso|");
+            }
+
+            //avançar o tempo
             tempoAtual++;
             tempoTotalSimulacao++;
 
-            //colocando thread para dormir
-            try { Thread.sleep(100);
-            } catch (Exception e) {
-
+            //exibir estado a cada unidade de tempo
+            if (finalizados < 1) {
+                System.out.println("\n--------------------------------------");
+                System.out.println("Tempo " + tempoAtual);
+                System.out.println("--------------------------------------");
+                printFila(filaProcessos);
+                printExecucao(cpu);
             }
         }
-
-        for (Thread t : medicos) {
-            try { t.join();
-            } catch (Exception e) {
-
-            }
-        }
-
-
-
-
 
         System.out.println("\n================ RESULTADOS ================\n");
         printGantt(gantt);
@@ -242,17 +152,11 @@ public class RoundRobin {
     }
 
     double calcularTempoMedioEspera() {
-        double soma = 0;
-        for (Paciente p : pacientes) {
-            soma += p.getTempoEspera();
-        }
-        return soma / pacientes.size();
+        return paciente.getTempoEspera();
     }
 
     double calcularTurnaroundMedio() {
-        double soma = 0;
-        for (Paciente p : pacientes) soma += p.getTurnaround();
-        return soma / pacientes.size();
+        return paciente.getTurnaround();
     }
 
     int getTrocasContexto() {
@@ -260,8 +164,7 @@ public class RoundRobin {
     }
 
     double calcularUtilizacaoMedicos() {
-        int soma = 0;
-        for (int t : tempoOcupadoMedicos) soma += t;
-        return (soma / (double)(tempoTotalSimulacao * nucleos)) * 100.0;
+        if (tempoTotalSimulacao == 0) return 0;
+        return (tempoOcupadoMedico / (double) tempoTotalSimulacao) * 100.0;
     }
 }

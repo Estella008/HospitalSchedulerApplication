@@ -20,10 +20,10 @@ public class SimulacaoController {
     private EscalonadorService escalonadorService;
 
     @PostMapping("/simular")
-    public Object simular(@RequestParam Map<String, String> params) throws Exception {
+    public void simular(@RequestParam Map<String, String> params) throws Exception {
         System.out.println("Requisitou");
 
-        String algoritmo = params.get("selectAlgoritmo");
+        String algoritimo = params.get("selectAlgoritmo");
         int nucleos = Integer.parseInt(params.get("selectNucleos"));
         Integer quantum = params.containsKey("quantum") && !params.get("quantum").isEmpty()
                 ? Integer.parseInt(params.get("quantum"))
@@ -42,6 +42,6 @@ public class SimulacaoController {
         }
 
         // chamar o algoritmo correto
-        return escalonadorService.executar(algoritmo, nucleos, quantum, pacientes);
+        escalonadorService.start(algoritimo,nucleos,quantum,pacientes);
     }
 }

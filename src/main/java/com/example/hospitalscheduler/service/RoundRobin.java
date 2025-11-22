@@ -10,6 +10,10 @@ public class RoundRobin {
     private int quantum;
     private List<Paciente> pacientes;
     private int nucleos;
+    private int trocasContexto = 0;
+    private int tempoTotalSimulacao = 0;
+    private int[] tempoOcupadoMedicos;
+
 
     //construtor
     public RoundRobin(int quantum, List<Paciente> pacientes, int nucleos) {
@@ -58,6 +62,7 @@ public class RoundRobin {
     public void executar() {
 
         printHeader();
+        tempoOcupadoMedicos = new int[nucleos];
 
         //criando fila de processos
         Queue<Paciente> filaProcessos = new LinkedList<>();
@@ -71,6 +76,7 @@ public class RoundRobin {
         int total = pacientes.size();
         //inidce para percorrer a lista de ordem de chegada
         int indexChegada = 0;
+
 
         //inicializando a marcação do tempo restante de cada paciente
         for (Paciente p : pacientes) {
@@ -118,6 +124,8 @@ public class RoundRobin {
                             //exibe a troca de contexto
                             System.out.println("TROCA DE CONTEXTO → Médico " + idCPU +
                                     " iniciou " + p.getNome());
+                            //soma para indicar que teve uma troca de contexto
+                            trocasContexto++;
                         }
 
                         //atribui paciente a variável
@@ -134,6 +142,7 @@ public class RoundRobin {
                         //diminui o quantum e o burst
                         atual.setRemaining(atual.getRemaining() - 1);
                         quantumRestante[idCPU]--;
+                        tempoOcupadoMedicos[idCPU]++;
 
                         //grava qual paciente foi atendido pelo médico
                         gantt.get(idCPU).append(atual.getNome()).append("|");
@@ -203,6 +212,7 @@ public class RoundRobin {
             }
 
             tempoAtual++;
+            tempoTotalSimulacao++;
 
             //colocando thread para dormir
             try { Thread.sleep(100);
@@ -218,8 +228,40 @@ public class RoundRobin {
             }
         }
 
+
+
+
+
         System.out.println("\n================ RESULTADOS ================\n");
         printGantt(gantt);
+        System.out.println("Tempo Médio de Espera: " + calcularTempoMedioEspera());
+        System.out.println("Turnaround Médio: " + calcularTurnaroundMedio());
+        System.out.println("Trocas de Contexto: " + getTrocasContexto());
+        System.out.println("Utilização Média dos Médicos: " + calcularUtilizacaoMedicos() + "%");
         System.out.println("\nFim da simulação.\n");
+    }
+
+    double calcularTempoMedioEspera() {
+        double soma = 0;
+        for (Paciente p : pacientes) {
+            soma += p.getTempoEspera();
+        }
+        return soma / pacientes.size();
+    }
+
+    double calcularTurnaroundMedio() {
+        double soma = 0;
+        for (Paciente p : pacientes) soma += p.getTurnaround();
+        return soma / pacientes.size();
+    }
+
+    int getTrocasContexto() {
+        return trocasContexto;
+    }
+
+    double calcularUtilizacaoMedicos() {
+        int soma = 0;
+        for (int t : tempoOcupadoMedicos) soma += t;
+        return (soma / (double)(tempoTotalSimulacao * nucleos)) * 100.0;
     }
 }

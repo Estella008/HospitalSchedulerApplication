@@ -37,6 +37,10 @@ public class SimulacaoController {
                 new TypeReference<List<Paciente>>() {}
         );
 
+        for (int i = 0; i < pacientes.size(); i++) {
+            pacientes.get(i).setNome(i + 1);   // Paciente 1, 2, 3...
+        }
+
         // chamar o algoritmo correto
         return escalonadorService.executar(algoritmo, nucleos, quantum, pacientes);
     }

@@ -172,6 +172,14 @@
         }
     });
 
+    window.onload = function () {
+    if (selectAlgoritmo.value === "RR") {
+        quantumSection.style.display = "block";
+    } else {
+        quantumSection.style.display = "none";
+    }
+};
+
         const patients = []; // lista enviada ao backend
 
         const addBtn = document.getElementById("addPatientBtn");

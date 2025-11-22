@@ -30,7 +30,9 @@ public class EscalonadorService {
     }
 
     private Object executarSJF(List<Paciente> pacientes, int nucleos) {
-        return "SJF executado";
+        ShortestJobFirst sjf = new ShortestJobFirst(pacientes, nucleos);
+        sjf.executar();
+        return "SJF (Shortest Job First) executado com " + nucleos + " núcleos.";
     }
 
     private Object executarSRTF(List<Paciente> pacientes, int nucleos) {

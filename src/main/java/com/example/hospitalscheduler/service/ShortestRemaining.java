@@ -17,6 +17,7 @@ public class ShortestRemaining {
     private static Map<Integer, Integer> tempoOcupadoPorMedico = new HashMap<>();
     private static AtomicInteger medicosFinalizados = new AtomicInteger(0);
     private static int totalMedicos = 0;
+    private static StringBuilder logCapturado = new StringBuilder();
 
     public ShortestRemaining(int idMedico, List<Paciente> listaPacientes) {
         this.idMedico = idMedico;
@@ -32,7 +33,7 @@ public class ShortestRemaining {
                 tempoOcupadoPorMedico.clear();
                 medicosFinalizados.set(0);
                 totalMedicos = 0;
-
+                logCapturado = new StringBuilder();
                 // Inicializa remaining
                 for (Paciente p : pacientes) {
                     p.setRemaining(p.getBurst());
@@ -48,19 +49,38 @@ public class ShortestRemaining {
             tempoOcupadoPorMedico.put(idMedico, 0);
         }
     }
+    private static void log(String mensagem) {
+        System.out.println(mensagem);
+        synchronized (logCapturado) {
+            logCapturado.append(mensagem).append("\n");
+        }
+    }
+
+    private static void logInline(String mensagem) {
+        System.out.print(mensagem);
+        synchronized (logCapturado) {
+            logCapturado.append(mensagem);
+        }
+    }
+
+    public static String getLogs() {
+        synchronized (logCapturado) {
+            return logCapturado.toString();
+        }
+    }
 
     private void printHeader() {
         synchronized (lock) {
-            System.out.println("\n========================================");
-            System.out.println("   EXECUÇÃO SRTF - MÉDICO " + idMedico);
-            System.out.println("========================================");
-            System.out.println("Total de Pacientes: " + pacientes.size());
+            log("\n========================================");
+            log("   EXECUÇÃO SRTF - MÉDICO " + idMedico);
+            log("========================================");
+            log("Total de Pacientes: " + pacientes.size());
             for (Paciente p : pacientes) {
-                System.out.println("  - Paciente " + p.getNome() +
+                log("  - Paciente " + p.getNome() +
                         ": Arrival=" + p.getArrival() +
                         ", Burst=" + p.getBurst());
             }
-            System.out.println("========================================\n");
+            log("========================================\n");
         }
     }
 
@@ -135,10 +155,10 @@ public class ShortestRemaining {
                         // Pode atender
                         if (menorRestante != pacienteAtual) {
                             if (pacienteAtual != null && pacienteAtual.getRemaining() > 0) {
-                                System.out.println("[Médico " + idMedico + "] PREEMPÇÃO → Paciente " +
+                                log("[Médico " + idMedico + "] PREEMPÇÃO → Paciente " +
                                         pacienteAtual.getNome() + " pausado");
                             }
-                            System.out.println("[Médico " + idMedico + "] TROCA DE CONTEXTO → iniciou " +
+                            log("[Médico " + idMedico + "] TROCA DE CONTEXTO → iniciou " +
                                     menorRestante.getNome());
                             trocasContextoPorMedico.put(idMedico, trocasContextoPorMedico.get(idMedico) + 1);
                         }
@@ -150,12 +170,12 @@ public class ShortestRemaining {
                         ganttPorMedico.get(idMedico).append(pacienteAtual.getNome()).append("|");
                         tempoOcupadoPorMedico.put(idMedico, tempoOcupadoPorMedico.get(idMedico) + 1);
 
-                        System.out.println("[Médico " + idMedico + "] executando " +
+                        log("[Médico " + idMedico + "] executando " +
                                 pacienteAtual.getNome() + " (restante=" +
                                 pacienteAtual.getRemaining() + ")");
 
                         if (pacienteAtual.getRemaining() == 0) {
-                            System.out.println("[Médico " + idMedico + "] FINALIZADO → " +
+                            log("[Médico " + idMedico + "] FINALIZADO → " +
                                     pacienteAtual.getNome());
                             pacienteAtual.setTempoFinalizacao(tempoAtual + 1);
                             finalizados.incrementAndGet();
@@ -164,7 +184,7 @@ public class ShortestRemaining {
                     }
                 }
 
-                // Avança o tempo (apenas um médico avança)
+                // Avança o tempo
                 if (idMedico == 1) {
                     tempoAtual++;
                 }
@@ -192,27 +212,27 @@ public class ShortestRemaining {
     }
 
     private void imprimirResultados() {
-            System.out.println("\n================ RESULTADOS GERAIS ================\n");
+            log("\n================ RESULTADOS GERAIS ================\n");
 
             for (Map.Entry<Integer, StringBuilder> entry : ganttPorMedico.entrySet()) {
                 int med = entry.getKey();
-                System.out.println("GANTT MÉDICO " + med + ":");
-                System.out.println("CPU " + med + ": " + entry.getValue());
-                System.out.println("Trocas de Contexto: " + trocasContextoPorMedico.get(med));
+                log("GANTT MÉDICO " + med + ":");
+                log("CPU " + med + ": " + entry.getValue());
+                log("Trocas de Contexto: " + trocasContextoPorMedico.get(med));
 
                 double utilizacao = tempoAtual > 0 ?
                         (tempoOcupadoPorMedico.get(med) / (double) tempoAtual) * 100.0 : 0;
-                System.out.println("Utilização: " + String.format("%.1f", utilizacao) + "%");
-                System.out.println();
+                log("Utilização: " + String.format("%.1f", utilizacao) + "%");
+
             }
 
-            System.out.println("Tempo Total de Simulação: " + tempoAtual);
+            log("Tempo Total de Simulação: " + tempoAtual);
 
             // ============================================
             //         MÉTRICAS DE DESEMPENHO (NOVO)
             // ============================================
 
-            System.out.println("\n--- MÉTRICAS POR PACIENTE ---");
+            log("\n--- MÉTRICAS POR PACIENTE ---");
 
             double somaTurnaround = 0;
             double somaEspera = 0;
@@ -228,7 +248,7 @@ public class ShortestRemaining {
                 somaTurnaround += turnaround;
                 somaEspera += espera;
 
-                System.out.println("Paciente " + p.getNome()
+                log("Paciente " + p.getNome()
                         + " | Finalização: " + p.getTempoFinalizacao()
                         + " | Turnaround: " + turnaround
                         + " | Espera: " + espera
@@ -238,11 +258,11 @@ public class ShortestRemaining {
             double avgTurnaround = somaTurnaround / pacientes.size();
             double avgEspera = somaEspera / pacientes.size();
 
-            System.out.println("\n--- MÉTRICAS GERAIS ---");
-            System.out.println("Tempo Médio de Execução (Turnaround): " + String.format("%.2f", avgTurnaround));
-            System.out.println("Tempo Médio de Espera: " + String.format("%.2f", avgEspera));
+            log("\n--- MÉTRICAS GERAIS ---");
+            log("Tempo Médio de Execução (Turnaround): " + String.format("%.2f", avgTurnaround));
+            log("Tempo Médio de Espera: " + String.format("%.2f", avgEspera));
 
-            System.out.println("\nFim da simulação.\n");
+            log("\nFim da simulação.\n");
         }
 
 
@@ -257,6 +277,7 @@ public class ShortestRemaining {
             tempoOcupadoPorMedico.clear();
             medicosFinalizados.set(0);
             totalMedicos = 0;
+            logCapturado = new StringBuilder();
         }
     }
 }

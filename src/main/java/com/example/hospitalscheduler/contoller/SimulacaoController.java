@@ -37,8 +37,12 @@ public class SimulacaoController {
         }
 
         // Executa e recebe o resultado
-        escalonadorService.start(algoritmo, nucleos, quantum, pacientes);
+        ;
 
-        return ResponseEntity.ok(null);
+        ResultadoDTO resultado = new ResultadoDTO(
+                escalonadorService.start(algoritmo, nucleos, quantum, pacientes)
+        );
+
+        return ResponseEntity.ok(resultado);
     }
 }

@@ -1,33 +1,28 @@
 package com.example.hospitalscheduler.service;
 
 import com.example.hospitalscheduler.DTO.Paciente;
-import com.example.hospitalscheduler.DTO.ResultadoDTO;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 
 @Service
 public class EscalonadorService {
 
-    public void start(String algoritmo, int nucleos, Integer quantum, List<Paciente> pacientes) {
-        // Reset para nova simulação
-        if (algoritmo.equals("SRTF")) {
-            ShortestRemaining.reset();
-        }
-
-        // Não precisa achatar para SRTF - todos processam a lista original
-        List<Paciente> listaPacientes = algoritmo.equals("SRTF") ?
-                pacientes : achatarLista(organizarListaPacientes(pacientes));
+    public String start(String algoritmo, int nucleos, Integer quantum, List<Paciente> pacientes) {
+        // Reset para nova simulação (limpa estado estático)
+        resetAlgoritmo(algoritmo);
 
         // Criar threads dos médicos
         List<Thread> threads = new ArrayList<>();
         for (int i = 1; i <= nucleos; i++) {
             Medico medico;
             if (i == 1) {
-                medico = new Medico(i, algoritmo, quantum, listaPacientes);
+                // Primeiro médico inicializa os dados compartilhados
+                medico = new Medico(i, algoritmo, quantum, pacientes);
+
             } else {
+                // Demais médicos apenas recebem o ID
                 medico = new Medico(i);
             }
             Thread t = new Thread(medico);
@@ -43,54 +38,51 @@ public class EscalonadorService {
                 e.printStackTrace();
             }
         }
-    }
-    private List<List<Paciente>> organizarListaPacientes(List<Paciente> filaPacientes) {
 
-        List<List<Paciente>> listaSeparadora = new ArrayList<>();
-
-        for (Paciente paciente : filaPacientes) {
-            int chegada = paciente.getArrival();
-
-            // Procura se já existe uma sublista com esse arrival
-            List<Paciente> sublista = null;
-            for (List<Paciente> grupo : listaSeparadora) {
-                if (grupo.get(0).getArrival() == chegada) {
-                    sublista = grupo;
-                    break;
-                }
-            }
-
-            // Se não existir um grupo ainda, cria
-            if (sublista == null) {
-                sublista = new ArrayList<>();
-                listaSeparadora.add(sublista);
-            }
-
-            // Adiciona o paciente na sublista correta
-            sublista.add(paciente);
-        }
-
-        // Agora ordena cada sublista pelo burst (menor primeiro)
-        for (List<Paciente> grupo : listaSeparadora) {
-            grupo.sort(Comparator.comparingInt(Paciente::getBurst));
-        }
-
-        return listaSeparadora;
+        // Retorna os logs capturados
+        return getLogsAlgoritmo(algoritmo);
     }
 
-    private List<Paciente> achatarLista(List<List<Paciente>> listaSeparadora) {
-        List<Paciente> listaFinal = new ArrayList<>();
-
-        // Primeiro ordena a lista de listas pelo arrival do primeiro paciente
-        listaSeparadora.sort(
-                Comparator.comparingInt(lista -> lista.get(0).getArrival())
-        );
-
-        // Agora concatena tudo na ordem
-        for (List<Paciente> grupo : listaSeparadora) {
-            listaFinal.addAll(grupo);
+    /**
+     * Retorna os logs capturados de cada algoritmo
+     */
+    private String getLogsAlgoritmo(String algoritmo) {
+        switch (algoritmo) {
+            case "SRTF":
+                return ShortestRemaining.getLogs();
+            case "RR":
+                return RoundRobin.getLogs();
+            case "SJF":
+                return ShortestJobFirst.getLogs();
+            case "PRIORIDADE":
+                // TODO: Adicionar quando implementar
+                // return Prioridade.getLogs();
+                return "Prioridade não implementado ainda";
+            default:
+                return "Algoritmo desconhecido: " + algoritmo;
         }
+    }
 
-        return listaFinal;
+    /**
+     * Reseta o estado estático de cada algoritmo antes de executar
+     */
+    private void resetAlgoritmo(String algoritmo) {
+        switch (algoritmo) {
+            case "SRTF":
+                ShortestRemaining.reset();
+                break;
+            case "RR":
+                RoundRobin.reset();
+                break;
+            case "SJF":
+                ShortestJobFirst.reset();
+                break;
+            case "PRIORIDADE":
+                // TODO: Adicionar quando implementar
+                // Prioridade.reset();
+                break;
+            default:
+                System.err.println("Algoritmo desconhecido: " + algoritmo);
+        }
     }
 }

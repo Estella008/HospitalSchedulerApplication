@@ -21,6 +21,7 @@ public class RoundRobin {
     private static Map<Integer, Paciente> pacienteAtualPorMedico = new HashMap<>();
     private static AtomicInteger medicosFinalizados = new AtomicInteger(0);
     private static int totalMedicos = 0;
+    private static StringBuilder logCapturado = new StringBuilder();
 
     public RoundRobin(int idMedico, int quantum, List<Paciente> listaPacientes) {
         this.idMedico = idMedico;
@@ -40,6 +41,7 @@ public class RoundRobin {
                 pacienteAtualPorMedico.clear();
                 medicosFinalizados.set(0);
                 totalMedicos = 0;
+                logCapturado = new StringBuilder();
 
                 // Inicializa remaining
                 for (Paciente p : pacientes) {
@@ -59,28 +61,49 @@ public class RoundRobin {
         }
     }
 
+    // Método auxiliar para log duplo (console + captura)
+    private static void log(String mensagem) {
+        System.out.println(mensagem);
+        synchronized (logCapturado) {
+            logCapturado.append(mensagem).append("\n");
+        }
+    }
+
+    private static void logInline(String mensagem) {
+        System.out.print(mensagem);
+        synchronized (logCapturado) {
+            logCapturado.append(mensagem);
+        }
+    }
+
+    public static String getLogs() {
+        synchronized (logCapturado) {
+            return logCapturado.toString();
+        }
+    }
+
     private void printHeader() {
         synchronized (lock) {
-            System.out.println("\n========================================");
-            System.out.println("   EXECUÇÃO ROUND ROBIN - MÉDICO " + idMedico);
-            System.out.println("========================================");
-            System.out.println("Total de Pacientes: " + pacientes.size());
-            System.out.println("Quantum: " + quantum);
+            log("\n========================================");
+            log("   EXECUÇÃO ROUND ROBIN - MÉDICO " + idMedico);
+            log("========================================");
+            log("Total de Pacientes: " + pacientes.size());
+            log("Quantum: " + quantum);
             for (Paciente p : pacientes) {
-                System.out.println("  - Paciente " + p.getNome() +
+                log("  - Paciente " + p.getNome() +
                         ": Arrival=" + p.getArrival() +
                         ", Burst=" + p.getBurst());
             }
-            System.out.println("========================================\n");
+            log("========================================\n");
         }
     }
 
     private void printFila() {
-        System.out.print("Fila de Espera: [ ");
+        logInline("Fila de Espera: [ ");
         for (Paciente p : filaProcessos) {
-            System.out.print(p.getNome() + " ");
+            logInline(p.getNome() + " ");
         }
-        System.out.println("]");
+        log("]");
     }
 
     public void executar() {
@@ -106,7 +129,7 @@ public class RoundRobin {
                     for (Paciente p : pacientes) {
                         if (p.getArrival() == tempoAtual && p.getRemaining() == p.getBurst()) {
                             filaProcessos.add(p);
-                            System.out.println("[Tempo " + tempoAtual + "] Nova chegada: " + p.getNome());
+                            log("[Tempo " + tempoAtual + "] Nova chegada: " + p.getNome());
                         }
                     }
                 }
@@ -119,7 +142,7 @@ public class RoundRobin {
                     pacienteAtual = filaProcessos.poll();
                     quantumRestante = quantum;
 
-                    System.out.println("[Médico " + idMedico + "] TROCA DE CONTEXTO → iniciou " +
+                    log("[Médico " + idMedico + "] TROCA DE CONTEXTO → iniciou " +
                             pacienteAtual.getNome());
                     trocasContextoPorMedico.put(idMedico, trocasContextoPorMedico.get(idMedico) + 1);
 
@@ -143,14 +166,14 @@ public class RoundRobin {
 
                     ganttPorMedico.get(idMedico).append(pacienteAtual.getNome()).append("|");
 
-                    System.out.println("[Médico " + idMedico + "] executando " +
+                    log("[Médico " + idMedico + "] executando " +
                             pacienteAtual.getNome() +
                             " (restante=" + pacienteAtual.getRemaining() +
                             ", quantum restante=" + quantumRestante + ")");
 
                     // Verifica se finalizou
                     if (pacienteAtual.getRemaining() == 0) {
-                        System.out.println("[Médico " + idMedico + "] FINALIZADO → " +
+                        log("[Médico " + idMedico + "] FINALIZADO → " +
                                 pacienteAtual.getNome());
                         pacienteAtual.setTempoFinalizacao(tempoAtual + 1);
                         pacienteAtualPorMedico.put(idMedico, null);
@@ -159,7 +182,7 @@ public class RoundRobin {
                     }
                     // Quantum acabou (chegou a 0)
                     else if (quantumRestante == 0) {
-                        System.out.println("[Médico " + idMedico + "] Quantum acabou → " +
+                        log("[Médico " + idMedico + "] Quantum acabou → " +
                                 pacienteAtual.getNome() + " volta para fila");
                         filaProcessos.add(pacienteAtual);
                         pacienteAtualPorMedico.put(idMedico, null);
@@ -177,10 +200,10 @@ public class RoundRobin {
                 if (idMedico == 1) {
                     tempoAtual++;
                     if (finalizados.get() < total) {
-                        System.out.println("\n--------------------------------------");
-                        System.out.println("[Tempo " + tempoAtual + "]");
+                        log("\n--------------------------------------");
+                        log("[Tempo " + tempoAtual + "]");
                         printFila();
-                        System.out.println("--------------------------------------");
+                        log("--------------------------------------");
                     }
                 }
             }
@@ -207,29 +230,29 @@ public class RoundRobin {
     }
 
     private void imprimirResultados() {
-            System.out.println("\n================ RESULTADOS GERAIS ================\n");
+        log("\n================ RESULTADOS GERAIS ================\n");
 
-            // Imprime Gantt e utilização por médico
-            for (Map.Entry<Integer, StringBuilder> entry : ganttPorMedico.entrySet()) {
-                int med = entry.getKey();
-                System.out.println("GANTT MÉDICO " + med + ":");
-                System.out.println("CPU " + med + ": " + entry.getValue());
-                System.out.println("Trocas de Contexto: " + trocasContextoPorMedico.get(med));
+        // Imprime Gantt e utilização por médico
+        for (Map.Entry<Integer, StringBuilder> entry : ganttPorMedico.entrySet()) {
+            int med = entry.getKey();
+            log("GANTT MÉDICO " + med + ":");
+            log("CPU " + med + ": " + entry.getValue());
+            log("Trocas de Contexto: " + trocasContextoPorMedico.get(med));
 
-                double utilizacao = tempoAtual > 0 ?
-                        (tempoOcupadoPorMedico.get(med) / (double) tempoAtual) * 100.0 : 0;
-                System.out.println("Utilização: " + String.format("%.1f", utilizacao) + "%");
-                System.out.println();
-            }
+            double utilizacao = tempoAtual > 0 ?
+                    (tempoOcupadoPorMedico.get(med) / (double) tempoAtual) * 100.0 : 0;
+            log("Utilização: " + String.format("%.1f", utilizacao) + "%");
+            log("");
+        }
 
-            System.out.println("Tempo Total de Simulação: " + tempoAtual);
-            System.out.println("Quantum: " + quantum);
+        log("Tempo Total de Simulação: " + tempoAtual);
+        log("Quantum: " + quantum);
 
-            // ================================
-            //       MÉTRICAS DE DESEMPENHO
-            // ================================
+        // ================================
+        //       MÉTRICAS DE DESEMPENHO
+        // ================================
 
-        System.out.println("\n--- MÉTRICAS POR PACIENTE ---");
+        log("\n--- MÉTRICAS POR PACIENTE ---");
 
         double somaTurnaround = 0;
         double somaEspera = 0;
@@ -245,7 +268,7 @@ public class RoundRobin {
             somaTurnaround += turnaround;
             somaEspera += espera;
 
-            System.out.println("Paciente " + p.getNome()
+            log("Paciente " + p.getNome()
                     + " | Finalização: " + p.getTempoFinalizacao()
                     + " | Turnaround: " + turnaround
                     + " | Espera: " + espera
@@ -255,14 +278,14 @@ public class RoundRobin {
         double avgTurnaround = somaTurnaround / pacientes.size();
         double avgEspera = somaEspera / pacientes.size();
 
-        System.out.println("\n--- MÉTRICAS GERAIS ---");
-        System.out.println("Tempo Médio de Execução (Turnaround): " + String.format("%.2f", avgTurnaround));
-        System.out.println("Tempo Médio de Espera: " + String.format("%.2f", avgEspera));
+        log("\n--- MÉTRICAS GERAIS ---");
+        log("Tempo Médio de Execução (Turnaround): " + String.format("%.2f", avgTurnaround));
+        log("Tempo Médio de Espera: " + String.format("%.2f", avgEspera));
 
     }
 
 
-        public static void reset() {
+    public static void reset() {
         synchronized (RoundRobin.class) {
             pacientes = null;
             filaProcessos = null;
@@ -276,6 +299,7 @@ public class RoundRobin {
             pacienteAtualPorMedico.clear();
             medicosFinalizados.set(0);
             totalMedicos = 0;
+            logCapturado = new StringBuilder();
         }
     }
 }

@@ -19,6 +19,8 @@ public class ShortestJobFirst {
     private static Map<Integer, Paciente> pacienteAtualPorMedico = new HashMap<>();
     private static AtomicInteger medicosFinalizados = new AtomicInteger(0);
     private static int totalMedicos = 0;
+    private static StringBuilder logCapturado = new StringBuilder();
+
 
     public ShortestJobFirst(int idMedico, List<Paciente> listaPacientes) {
         this.idMedico = idMedico;
@@ -58,18 +60,38 @@ public class ShortestJobFirst {
         }
     }
 
+    private static void log(String mensagem) {
+        System.out.println(mensagem);
+        synchronized (logCapturado) {
+            logCapturado.append(mensagem).append("\n");
+        }
+    }
+
+    private static void logInline(String mensagem) {
+        System.out.print(mensagem);
+        synchronized (logCapturado) {
+            logCapturado.append(mensagem);
+        }
+    }
+
+    public static String getLogs() {
+        synchronized (logCapturado) {
+            return logCapturado.toString();
+        }
+    }
+
     private void printHeader() {
         synchronized (lock) {
-            System.out.println("\n========================================");
-            System.out.println("   EXECUÇÃO SJF - MÉDICO " + idMedico);
-            System.out.println("========================================");
-            System.out.println("Total de Pacientes: " + pacientes.size());
+            log("\n========================================");
+            log("   EXECUÇÃO SJF - MÉDICO " + idMedico);
+            log("========================================");
+            log("Total de Pacientes: " + pacientes.size());
             for (Paciente p : pacientes) {
-                System.out.println("  - Paciente " + p.getNome() +
+                log("  - Paciente " + p.getNome() +
                         ": Arrival=" + p.getArrival() +
                         ", Burst=" + p.getBurst());
             }
-            System.out.println("========================================\n");
+            log("========================================\n");
         }
     }
 
@@ -79,7 +101,7 @@ public class ShortestJobFirst {
         for (Paciente p : temp) {
             System.out.print(p.getNome() + "(" + p.getBurst() + ") ");
         }
-        System.out.println("]");
+        log("]");
     }
 
     public void executar() {
@@ -105,7 +127,7 @@ public class ShortestJobFirst {
                     for (Paciente p : pacientes) {
                         if (p.getArrival() == tempoAtual && p.getRemaining() == p.getBurst()) {
                             filaProntos.add(p);
-                            System.out.println("[Tempo " + tempoAtual + "] Nova chegada: " +
+                            log("[Tempo " + tempoAtual + "] Nova chegada: " +
                                     p.getNome() + " (Burst: " + p.getBurst() + ")");
                         }
                     }
@@ -117,7 +139,7 @@ public class ShortestJobFirst {
                 if (pacienteAtual == null && !filaProntos.isEmpty()) {
                     pacienteAtual = filaProntos.poll(); // Pega o de menor burst
 
-                    System.out.println("[Médico " + idMedico + "] TROCA DE CONTEXTO → iniciou " +
+                    log("[Médico " + idMedico + "] TROCA DE CONTEXTO → iniciou " +
                             pacienteAtual.getNome() + " (Burst: " + pacienteAtual.getBurst() + ")");
                     trocasContextoPorMedico.put(idMedico, trocasContextoPorMedico.get(idMedico) + 1);
 
@@ -131,7 +153,7 @@ public class ShortestJobFirst {
 
                     ganttPorMedico.get(idMedico).append(pacienteAtual.getNome()).append("|");
 
-                    System.out.println("[Médico " + idMedico + "] executando " +
+                    log("[Médico " + idMedico + "] executando " +
                             pacienteAtual.getNome() +
                             " (restante=" + pacienteAtual.getRemaining() + ")");
 
@@ -143,7 +165,7 @@ public class ShortestJobFirst {
                         pacienteAtual.setTempoEspera(pacienteAtual.getTurnaround() - pacienteAtual.getBurst());
                         // =====================================
 
-                        System.out.println("[Médico " + idMedico + "] FINALIZADO → " +
+                        log("[Médico " + idMedico + "] FINALIZADO → " +
                                 pacienteAtual.getNome());
 
                         pacienteAtualPorMedico.put(idMedico, null);
@@ -158,10 +180,10 @@ public class ShortestJobFirst {
                 if (idMedico == 1) {
                     tempoAtual++;
                     if (finalizados.get() < total) {
-                        System.out.println("\n--------------------------------------");
-                        System.out.println("[Tempo " + tempoAtual + "]");
+                        log("\n--------------------------------------");
+                        log("[Tempo " + tempoAtual + "]");
                         printFila();
-                        System.out.println("--------------------------------------");
+                        log("--------------------------------------");
                     }
                 }
             }
@@ -188,27 +210,27 @@ public class ShortestJobFirst {
     }
 
     private void imprimirResultados() {
-        System.out.println("\n================ RESULTADOS GERAIS ================\n");
+        log("\n================ RESULTADOS GERAIS ================\n");
 
         for (Map.Entry<Integer, StringBuilder> entry : ganttPorMedico.entrySet()) {
             int med = entry.getKey();
-            System.out.println("GANTT MÉDICO " + med + ":");
-            System.out.println("CPU " + med + ": " + entry.getValue());
-            System.out.println("Trocas de Contexto: " + trocasContextoPorMedico.get(med));
+            log("GANTT MÉDICO " + med + ":");
+            log("CPU " + med + ": " + entry.getValue());
+            log("Trocas de Contexto: " + trocasContextoPorMedico.get(med));
 
             double utilizacao = tempoAtual > 0 ?
                     (tempoOcupadoPorMedico.get(med) / (double) tempoAtual) * 100.0 : 0;
-            System.out.println("Utilização: " + String.format("%.1f", utilizacao) + "%");
-            System.out.println();
+            log("Utilização: " + String.format("%.1f", utilizacao) + "%");
+
         }
 
-        System.out.println("Tempo Total de Simulação: " + tempoAtual);
+        log("Tempo Total de Simulação: " + tempoAtual);
 
         // ============================================
         //         MÉTRICAS DE DESEMPENHO (NOVO)
         // ============================================
 
-        System.out.println("\n--- MÉTRICAS POR PACIENTE ---");
+        log("\n--- MÉTRICAS POR PACIENTE ---");
 
         double somaTurnaround = 0;
         double somaEspera = 0;
@@ -224,7 +246,7 @@ public class ShortestJobFirst {
             somaTurnaround += turnaround;
             somaEspera += espera;
 
-            System.out.println("Paciente " + p.getNome()
+            log("Paciente " + p.getNome()
                     + " | Finalização: " + p.getTempoFinalizacao()
                     + " | Turnaround: " + turnaround
                     + " | Espera: " + espera
@@ -234,11 +256,11 @@ public class ShortestJobFirst {
         double avgTurnaround = somaTurnaround / pacientes.size();
         double avgEspera = somaEspera / pacientes.size();
 
-        System.out.println("\n--- MÉTRICAS GERAIS ---");
-        System.out.println("Tempo Médio de Execução (Turnaround): " + String.format("%.2f", avgTurnaround));
-        System.out.println("Tempo Médio de Espera: " + String.format("%.2f", avgEspera));
+        log("\n--- MÉTRICAS GERAIS ---");
+        log("Tempo Médio de Execução (Turnaround): " + String.format("%.2f", avgTurnaround));
+        log("Tempo Médio de Espera: " + String.format("%.2f", avgEspera));
 
-        System.out.println("\nFim da simulação.\n");
+        log("\nFim da simulação.\n");
     }
 
     public static void reset() {
@@ -254,6 +276,7 @@ public class ShortestJobFirst {
             pacienteAtualPorMedico.clear();
             medicosFinalizados.set(0);
             totalMedicos = 0;
+            logCapturado = new StringBuilder();
         }
     }
 }

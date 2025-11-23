@@ -238,7 +238,7 @@
                 localStorage.setItem("resultadoSimulacao", JSON.stringify(data));
 
                 // 3. Redireciona para a página de resultado
-                window.location.href = "resultado.html";
+                window.open("resultado.html", "_blank");
             } else {
                 alert("Erro na simulação. Verifique se o backend está rodando.");
             }

@@ -1,110 +1,79 @@
 package com.example.hospitalscheduler.service;
 
 import com.example.hospitalscheduler.DTO.Paciente;
+import java.util.*;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-
-public class Medico implements Runnable{
+public class Medico implements Runnable {
     private int idMedico;
-    private static String algoritimo;
-    private static List<Paciente> filaPacientes = new ArrayList<>();
+    private static String algoritmo;
+    private static List<Paciente> filaPacientes;
     private static Integer quantumMax;
-    //quando finalizar deixar  false
-    static public boolean iniciou;
-    //usado na primeira chamada
-    public Medico(int idMedico,String algoritimoSelecinado,Integer quantum ,List<Paciente> listaPacientes){
+
+    public Medico(int idMedico, String algoritmoSelecionado, Integer quantum, List<Paciente> listaPacientes) {
         this.idMedico = idMedico;
-        algoritimo = algoritimoSelecinado;
-        filaPacientes = listaPacientes;
-        quantumMax = quantum;
-        iniciou = true;
+        Medico.algoritmo = algoritmoSelecionado;
+        Medico.filaPacientes = listaPacientes;
+        Medico.quantumMax = quantum;
     }
-    //usado nas outras chamadas
-    public Medico(int idMedico){
+
+    public Medico(int idMedico) {
         this.idMedico = idMedico;
     }
 
-    public synchronized void adicionar(Paciente paciente) {
-        filaPacientes.add(paciente);
-        notify();
-    }
-
-    public Boolean executar(String algoritmo, Integer quantum,Paciente paciente) {
-        if(paciente == null) return false;
-        switch (algoritmo) {
-            case "RR":
-                 executarRR(paciente, quantum);
-                 return true;
-                 /*
-            case "SJF":
-                 executarSJF(paciente);
-                return true;
-                  */
-            case "SRTF":
-                executarSRTF(paciente);
-                return true;
-            case "PRIORIDADE":
-                executarPrioridade(paciente);
-                return true;
-            default:
-                return false;
-
-
+    public boolean executar(String algoritmo, Integer quantum, Paciente paciente) {
+        // Paciente não é usado aqui, pois cada algoritmo gerencia internamente
+        try {
+            switch (algoritmo) {
+                case "RR":
+                    executarRR();
+                    return true;
+                case "SJF":
+                    executarSJF();
+                    return true;
+                case "SRTF":
+                    executarSRTF();
+                    return true;
+                case "PRIORIDADE":
+                    executarPrioridade();
+                    return true;
+                default:
+                    return false;
+            }
+        } catch (Exception e) {
+            System.err.println("[Médico " + idMedico + "] Erro: " + e.getMessage());
+            return false;
         }
     }
 
-
-
-    private Object executarSRTF(Paciente paciente) {
-        ShortestRemaining shortestRemaining = new ShortestRemaining(idMedico, paciente);
-        shortestRemaining.executar();
-        return "SRTF executado";
+    private void executarSRTF() {
+        // Médico participa da execução paralela do SRTF
+        ShortestRemaining srtf = new ShortestRemaining(idMedico, filaPacientes);
+        srtf.executar();
     }
 
-    private Object executarPrioridade(Paciente paciente) {
-        return "Prioridade executado";
+    private void executarSJF() {
+        // TODO: Implementar SJF paralelo
+        System.out.println("[Médico " + idMedico + "] SJF não implementado ainda");
     }
 
-    private Object executarRR(Paciente paciente, Integer quantum) {
-        RoundRobin roundRobin = new RoundRobin(quantum, paciente);
-        roundRobin.executar();
-        //alterar o retorno para se executar retorno true se não retorne false
-        return "RR executado com quantum = " + quantum + " e núcleos";
+    private void executarPrioridade() {
+        // TODO: Implementar Prioridade paralelo
+        System.out.println("[Médico " + idMedico + "] Prioridade não implementado ainda");
     }
 
-    /*
-    private Object executarSJF(Paciente paciente) {
-        ShortestJobFirst sjf = new ShortestJobFirst(paciente);
-        sjf.executar();
-        //alterar o retorno para se executar retorno true se não retorne false
-        return "SJF (Shortest Job First) executado com  núcleos.";
-    }*/
+    private void executarRR() {
+        // Médico participa da execução paralela do Round Robin
+        RoundRobin rr = new RoundRobin(idMedico, quantumMax, filaPacientes);
+        rr.executar();
+    }
 
     @Override
     public void run() {
+        System.out.println("[Médico " + idMedico + "] Iniciou atendimento - Algoritmo: " + algoritmo);
 
-        while (true) {
-            boolean executou;
-            Paciente pacienteVez = null;
-           synchronized (filaPacientes){
-               if(filaPacientes.isEmpty()){
-                   break;
-               }else{
-                   pacienteVez = filaPacientes.remove(0);
+        // Todos os algoritmos agora executam de forma paralela
+        executar(algoritmo, quantumMax, null);
 
-               }
-           }
-            executou = executar(algoritimo,quantumMax,pacienteVez);
-
-            if(!executou){
-                try {
-                    Thread.sleep(100);
-                } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
-                }
-            }
-        }
+        System.out.println("[Médico " + idMedico + "] Finalizou atendimento");
     }
 }

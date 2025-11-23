@@ -1,96 +1,225 @@
 package com.example.hospitalscheduler.service;
 
 import com.example.hospitalscheduler.DTO.Paciente;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class ShortestRemaining {
 
-    private int trocasContexto = 0;
-    private int tempoTotalSimulacao = 0;
-    private int tempoOcupadoMedico = 0;
-    private final int idMedico;
-    private Paciente paciente;
+    private int idMedico;
+    private static List<Paciente> pacientes;
+    private static final Object lock = new Object();
+    private static AtomicInteger finalizados = new AtomicInteger(0);
+    private static volatile int tempoAtual = 0;
+    private static volatile boolean sistemaAtivo = true;
+    private static Map<Integer, StringBuilder> ganttPorMedico = new HashMap<>();
+    private static Map<Integer, Integer> trocasContextoPorMedico = new HashMap<>();
+    private static Map<Integer, Integer> tempoOcupadoPorMedico = new HashMap<>();
+    private static AtomicInteger medicosFinalizados = new AtomicInteger(0);
+    private static int totalMedicos = 0;
 
-    public ShortestRemaining(int idMedico, Paciente paciente) {
-        this.paciente = paciente;
+    public ShortestRemaining(int idMedico, List<Paciente> listaPacientes) {
         this.idMedico = idMedico;
+
+        synchronized (ShortestRemaining.class) {
+            if (pacientes == null) {
+                pacientes = listaPacientes;
+                finalizados.set(0);
+                tempoAtual = 0;
+                sistemaAtivo = true;
+                ganttPorMedico.clear();
+                trocasContextoPorMedico.clear();
+                tempoOcupadoPorMedico.clear();
+                medicosFinalizados.set(0);
+                totalMedicos = 0;
+
+                // Inicializa remaining
+                for (Paciente p : pacientes) {
+                    p.setRemaining(p.getBurst());
+                }
+
+                // Ordena por arrival
+                pacientes.sort(Comparator.comparingInt(Paciente::getArrival));
+            }
+
+            totalMedicos++;
+            ganttPorMedico.put(idMedico, new StringBuilder());
+            trocasContextoPorMedico.put(idMedico, 0);
+            tempoOcupadoPorMedico.put(idMedico, 0);
+        }
     }
 
-    private void printHeader(Paciente paciente) {
-        System.out.println("\n========================================");
-        System.out.println("      EXECUÇÃO SRTF POR MÉDICO " + idMedico);
-        System.out.println("========================================");
-        System.out.println("Paciente: " + paciente.getNome());
-        System.out.println("Burst: " + paciente.getBurst());
-        System.out.println("Arrival: " + paciente.getArrival());
-        System.out.println("========================================\n");
-    }
-
-    private void printExecucao(Paciente paciente) {
-        System.out.println("Médico " + idMedico + " em Execução: " + paciente.getNome());
-    }
-
-    private void printGantt(StringBuilder gantt) {
-        System.out.println("\nGANTT MÉDICO " + idMedico + ":");
-        System.out.println("CPU " + idMedico + ": " + gantt);
+    private void printHeader() {
+        synchronized (lock) {
+            System.out.println("\n========================================");
+            System.out.println("   EXECUÇÃO SRTF - MÉDICO " + idMedico);
+            System.out.println("========================================");
+            System.out.println("Total de Pacientes: " + pacientes.size());
+            for (Paciente p : pacientes) {
+                System.out.println("  - Paciente " + p.getNome() +
+                        ": Arrival=" + p.getArrival() +
+                        ", Burst=" + p.getBurst());
+            }
+            System.out.println("========================================\n");
+        }
     }
 
     public void executar() {
+        if (idMedico == 1) {
+            printHeader();
+        }
 
-        printHeader(paciente);
+        // Aguarda todos os médicos estarem prontos
+        try {
+            Thread.sleep(100);
+        } catch (InterruptedException e) {
+            return;
+        }
 
-        paciente.setRemaining(paciente.getBurst());
+        Paciente pacienteAtual = null;
+        int total = pacientes.size();
 
-        int tempoAtual = paciente.getArrival();
-        boolean finalizado = false;
+        while (sistemaAtivo && finalizados.get() < total) {
 
-        StringBuilder gantt = new StringBuilder();
+            synchronized (lock) {
+                // Encontra pacientes disponíveis no tempo atual
+                List<Paciente> disponiveis = new ArrayList<>();
 
-        System.out.println("--------------------------------------");
-        System.out.println("Tempo " + tempoAtual);
-        System.out.println("--------------------------------------");
+                for (Paciente p : pacientes) {
+                    if (p.getArrival() <= tempoAtual && p.getRemaining() > 0) {
+                        disponiveis.add(p);
+                    }
+                }
 
-        // Troca de contexto inicial
-        System.out.println("TROCA DE CONTEXTO → Médico " + idMedico +
-                " iniciou " + paciente.getNome());
-        trocasContexto++;
+                if (disponiveis.isEmpty()) {
+                    // Nenhum paciente disponível ainda
+                    ganttPorMedico.get(idMedico).append("ocioso|");
+                    pacienteAtual = null;
+                } else {
+                    // Escolhe o com menor tempo restante
+                    Paciente menorRestante = disponiveis.get(0);
+                    for (Paciente p : disponiveis) {
+                        if (p.getRemaining() < menorRestante.getRemaining()) {
+                            menorRestante = p;
+                        } else if (p.getRemaining() == menorRestante.getRemaining()) {
+                            // Desempate por arrival
+                            if (p.getArrival() < menorRestante.getArrival()) {
+                                menorRestante = p;
+                            }
+                        }
+                    }
 
-        while (!finalizado) {
+                    // Verifica se algum médico já está processando este paciente
+                    boolean pacienteDisponivel = true;
+                    for (int i = 1; i <= ganttPorMedico.size(); i++) {
+                        if (i != idMedico) {
+                            StringBuilder ganttOutro = ganttPorMedico.get(i);
+                            if (ganttOutro != null && ganttOutro.length() > 0) {
+                                String[] partes = ganttOutro.toString().split("\\|");
+                                if (partes.length > 0) {
+                                    String ultimoAtendido = partes[partes.length - 1];
+                                    if (ultimoAtendido.equals(String.valueOf(menorRestante.getNome()))) {
+                                        pacienteDisponivel = false;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    }
 
-            // Executa uma unidade de tempo
-            paciente.setRemaining(paciente.getRemaining() - 1);
-            tempoOcupadoMedico++;
+                    if (!pacienteDisponivel) {
+                        // Outro médico está atendendo, fica ocioso
+                        ganttPorMedico.get(idMedico).append("ocioso|");
+                        pacienteAtual = null;
+                    } else {
+                        // Pode atender
+                        if (menorRestante != pacienteAtual) {
+                            if (pacienteAtual != null && pacienteAtual.getRemaining() > 0) {
+                                System.out.println("[Médico " + idMedico + "] PREEMPÇÃO → Paciente " +
+                                        pacienteAtual.getNome() + " pausado");
+                            }
+                            System.out.println("[Médico " + idMedico + "] TROCA DE CONTEXTO → iniciou " +
+                                    menorRestante.getNome());
+                            trocasContextoPorMedico.put(idMedico, trocasContextoPorMedico.get(idMedico) + 1);
+                        }
 
-            gantt.append(paciente.getNome()).append("|");
+                        pacienteAtual = menorRestante;
 
-            printExecucao(paciente);
+                        // Executa 1 unidade
+                        pacienteAtual.setRemaining(pacienteAtual.getRemaining() - 1);
+                        ganttPorMedico.get(idMedico).append(pacienteAtual.getNome()).append("|");
+                        tempoOcupadoPorMedico.put(idMedico, tempoOcupadoPorMedico.get(idMedico) + 1);
 
-            if (paciente.getRemaining() == 0) {
-                System.out.println("FINALIZADO → " + paciente.getNome());
-                finalizado = true;
+                        System.out.println("[Médico " + idMedico + "] executando " +
+                                pacienteAtual.getNome() + " (restante=" +
+                                pacienteAtual.getRemaining() + ")");
+
+                        if (pacienteAtual.getRemaining() == 0) {
+                            System.out.println("[Médico " + idMedico + "] FINALIZADO → " +
+                                    pacienteAtual.getNome());
+                            finalizados.incrementAndGet();
+                            pacienteAtual = null;
+                        }
+                    }
+                }
+
+                // Avança o tempo (apenas um médico avança)
+                if (idMedico == 1) {
+                    tempoAtual++;
+                }
             }
 
-            tempoAtual++;
-            tempoTotalSimulacao++;
-
-            if (!finalizado) {
-                System.out.println("\n--------------------------------------");
-                System.out.println("Tempo " + tempoAtual);
-                System.out.println("--------------------------------------");
-                printExecucao(paciente);
+            // Sincroniza tempo entre médicos
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                break;
             }
         }
 
-        // Resultados
-        System.out.println("\n================ RESULTADOS ================\n");
-        printGantt(gantt);
-        System.out.println("Trocas de Contexto: " + trocasContexto);
-        System.out.println("Utilização do Médico: " + calcularUtilizacao() + "%");
+        // Último médico a finalizar imprime resultados
+        int medicosFin = medicosFinalizados.incrementAndGet();
+
+        if (medicosFin >= totalMedicos) {
+            synchronized (lock) {
+                if (finalizados.get() >= total) {
+                    imprimirResultados();
+                }
+            }
+        }
+    }
+
+    private void imprimirResultados() {
+        System.out.println("\n================ RESULTADOS GERAIS ================\n");
+
+        for (Map.Entry<Integer, StringBuilder> entry : ganttPorMedico.entrySet()) {
+            int med = entry.getKey();
+            System.out.println("GANTT MÉDICO " + med + ":");
+            System.out.println("CPU " + med + ": " + entry.getValue());
+            System.out.println("Trocas de Contexto: " + trocasContextoPorMedico.get(med));
+
+            double utilizacao = tempoAtual > 0 ?
+                    (tempoOcupadoPorMedico.get(med) / (double) tempoAtual) * 100.0 : 0;
+            System.out.println("Utilização: " + String.format("%.1f", utilizacao) + "%");
+            System.out.println();
+        }
+
+        System.out.println("Tempo Total de Simulação: " + tempoAtual);
         System.out.println("\nFim da simulação.\n");
     }
 
-    private double calcularUtilizacao() {
-        if (tempoTotalSimulacao == 0) return 0;
-        return (tempoOcupadoMedico / (double) tempoTotalSimulacao) * 100.0;
+    public static void reset() {
+        synchronized (ShortestRemaining.class) {
+            pacientes = null;
+            finalizados.set(0);
+            tempoAtual = 0;
+            sistemaAtivo = false;
+            ganttPorMedico.clear();
+            trocasContextoPorMedico.clear();
+            tempoOcupadoPorMedico.clear();
+            medicosFinalizados.set(0);
+            totalMedicos = 0;
+        }
     }
 }
-

@@ -2,13 +2,13 @@ package com.example.hospitalscheduler.DTO;
 
 public class Paciente {
     private int nome;
-    private int arrival;
-    private int burst;
-    private int priority;
-    private int RemainingTime;
-    private int tempoFinalizacao;
-    private int tempoEspera;
-    private int turnaround;
+    private int arrival; //chegada
+    private int burst; //tempo de duração
+    private int priority; //prioridade
+    private int RemainingTime; //tempo restante de atendimento
+    private int tempoFinalizacao; //tempo que o processo finalizou
+    private int tempoEspera; //quanto tempo paciente ficou esperando na fila
+    private int turnaround; //tempo total da chegada até a finalização
 
     public int getArrival() { return arrival; }
     public void setArrival(int arrival) { this.arrival = arrival; }

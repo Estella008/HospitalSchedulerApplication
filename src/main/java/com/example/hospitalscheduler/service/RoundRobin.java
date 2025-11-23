@@ -129,6 +129,14 @@ public class RoundRobin {
 
                 // Executa 1 unidade de tempo
                 if (pacienteAtual != null) {
+
+                    // Evita que execute um processo já finalizado
+                    if (pacienteAtual.getRemaining() <= 0) {
+                        pacienteAtualPorMedico.put(idMedico, null);
+                        quantumRestantePorMedico.put(idMedico, 0);
+                        continue; // pula para o próximo tempo
+                    }
+
                     pacienteAtual.setRemaining(pacienteAtual.getRemaining() - 1);
                     quantumRestante--;
                     tempoOcupadoPorMedico.put(idMedico, tempoOcupadoPorMedico.get(idMedico) + 1);
@@ -144,6 +152,7 @@ public class RoundRobin {
                     if (pacienteAtual.getRemaining() == 0) {
                         System.out.println("[Médico " + idMedico + "] FINALIZADO → " +
                                 pacienteAtual.getNome());
+                        pacienteAtual.setTempoFinalizacao(tempoAtual + 1);
                         pacienteAtualPorMedico.put(idMedico, null);
                         quantumRestantePorMedico.put(idMedico, 0);
                         finalizados.incrementAndGet();
@@ -198,26 +207,62 @@ public class RoundRobin {
     }
 
     private void imprimirResultados() {
-        System.out.println("\n================ RESULTADOS GERAIS ================\n");
+            System.out.println("\n================ RESULTADOS GERAIS ================\n");
 
-        for (Map.Entry<Integer, StringBuilder> entry : ganttPorMedico.entrySet()) {
-            int med = entry.getKey();
-            System.out.println("GANTT MÉDICO " + med + ":");
-            System.out.println("CPU " + med + ": " + entry.getValue());
-            System.out.println("Trocas de Contexto: " + trocasContextoPorMedico.get(med));
+            // Imprime Gantt e utilização por médico
+            for (Map.Entry<Integer, StringBuilder> entry : ganttPorMedico.entrySet()) {
+                int med = entry.getKey();
+                System.out.println("GANTT MÉDICO " + med + ":");
+                System.out.println("CPU " + med + ": " + entry.getValue());
+                System.out.println("Trocas de Contexto: " + trocasContextoPorMedico.get(med));
 
-            double utilizacao = tempoAtual > 0 ?
-                    (tempoOcupadoPorMedico.get(med) / (double) tempoAtual) * 100.0 : 0;
-            System.out.println("Utilização: " + String.format("%.1f", utilizacao) + "%");
-            System.out.println();
+                double utilizacao = tempoAtual > 0 ?
+                        (tempoOcupadoPorMedico.get(med) / (double) tempoAtual) * 100.0 : 0;
+                System.out.println("Utilização: " + String.format("%.1f", utilizacao) + "%");
+                System.out.println();
+            }
+
+            System.out.println("Tempo Total de Simulação: " + tempoAtual);
+            System.out.println("Quantum: " + quantum);
+
+            // ================================
+            //       MÉTRICAS DE DESEMPENHO
+            // ================================
+
+        System.out.println("\n--- MÉTRICAS POR PACIENTE ---");
+
+        double somaTurnaround = 0;
+        double somaEspera = 0;
+
+        for (Paciente p : pacientes) {
+
+            int turnaround = p.getTempoFinalizacao() - p.getArrival();
+            int espera = turnaround - p.getBurst();
+
+            p.setTurnaround(turnaround);
+            p.setTempoEspera(espera);
+
+            somaTurnaround += turnaround;
+            somaEspera += espera;
+
+            System.out.println("Paciente " + p.getNome()
+                    + " | Finalização: " + p.getTempoFinalizacao()
+                    + " | Turnaround: " + turnaround
+                    + " | Espera: " + espera
+            );
         }
 
-        System.out.println("Tempo Total de Simulação: " + tempoAtual);
-        System.out.println("Quantum: " + quantum);
-        System.out.println("\nFim da simulação.\n");
+        double avgTurnaround = somaTurnaround / pacientes.size();
+        double avgEspera = somaEspera / pacientes.size();
+
+        System.out.println("\n--- MÉTRICAS GERAIS ---");
+        System.out.println("Tempo Médio de Execução (Turnaround): " + String.format("%.2f", avgTurnaround));
+        System.out.println("Tempo Médio de Espera: " + String.format("%.2f", avgEspera));
+
     }
 
-    public static void reset() {
+
+        public static void reset() {
         synchronized (RoundRobin.class) {
             pacientes = null;
             filaProcessos = null;

@@ -157,6 +157,7 @@ public class ShortestRemaining {
                         if (pacienteAtual.getRemaining() == 0) {
                             System.out.println("[Médico " + idMedico + "] FINALIZADO → " +
                                     pacienteAtual.getNome());
+                            pacienteAtual.setTempoFinalizacao(tempoAtual + 1);
                             finalizados.incrementAndGet();
                             pacienteAtual = null;
                         }
@@ -191,25 +192,61 @@ public class ShortestRemaining {
     }
 
     private void imprimirResultados() {
-        System.out.println("\n================ RESULTADOS GERAIS ================\n");
+            System.out.println("\n================ RESULTADOS GERAIS ================\n");
 
-        for (Map.Entry<Integer, StringBuilder> entry : ganttPorMedico.entrySet()) {
-            int med = entry.getKey();
-            System.out.println("GANTT MÉDICO " + med + ":");
-            System.out.println("CPU " + med + ": " + entry.getValue());
-            System.out.println("Trocas de Contexto: " + trocasContextoPorMedico.get(med));
+            for (Map.Entry<Integer, StringBuilder> entry : ganttPorMedico.entrySet()) {
+                int med = entry.getKey();
+                System.out.println("GANTT MÉDICO " + med + ":");
+                System.out.println("CPU " + med + ": " + entry.getValue());
+                System.out.println("Trocas de Contexto: " + trocasContextoPorMedico.get(med));
 
-            double utilizacao = tempoAtual > 0 ?
-                    (tempoOcupadoPorMedico.get(med) / (double) tempoAtual) * 100.0 : 0;
-            System.out.println("Utilização: " + String.format("%.1f", utilizacao) + "%");
-            System.out.println();
+                double utilizacao = tempoAtual > 0 ?
+                        (tempoOcupadoPorMedico.get(med) / (double) tempoAtual) * 100.0 : 0;
+                System.out.println("Utilização: " + String.format("%.1f", utilizacao) + "%");
+                System.out.println();
+            }
+
+            System.out.println("Tempo Total de Simulação: " + tempoAtual);
+
+            // ============================================
+            //         MÉTRICAS DE DESEMPENHO (NOVO)
+            // ============================================
+
+            System.out.println("\n--- MÉTRICAS POR PACIENTE ---");
+
+            double somaTurnaround = 0;
+            double somaEspera = 0;
+
+            for (Paciente p : pacientes) {
+
+                int turnaround = p.getTempoFinalizacao() - p.getArrival();
+                int espera = turnaround - p.getBurst();
+
+                p.setTurnaround(turnaround);
+                p.setTempoEspera(espera);
+
+                somaTurnaround += turnaround;
+                somaEspera += espera;
+
+                System.out.println("Paciente " + p.getNome()
+                        + " | Finalização: " + p.getTempoFinalizacao()
+                        + " | Turnaround: " + turnaround
+                        + " | Espera: " + espera
+                );
+            }
+
+            double avgTurnaround = somaTurnaround / pacientes.size();
+            double avgEspera = somaEspera / pacientes.size();
+
+            System.out.println("\n--- MÉTRICAS GERAIS ---");
+            System.out.println("Tempo Médio de Execução (Turnaround): " + String.format("%.2f", avgTurnaround));
+            System.out.println("Tempo Médio de Espera: " + String.format("%.2f", avgEspera));
+
+            System.out.println("\nFim da simulação.\n");
         }
 
-        System.out.println("Tempo Total de Simulação: " + tempoAtual);
-        System.out.println("\nFim da simulação.\n");
-    }
 
-    public static void reset() {
+        public static void reset() {
         synchronized (ShortestRemaining.class) {
             pacientes = null;
             finalizados.set(0);

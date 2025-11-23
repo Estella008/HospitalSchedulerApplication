@@ -96,15 +96,15 @@ public class ShortestJobFirst {
     }
 
     private void printFila() {
-        System.out.print("Fila de Prontos (ordenada por burst): [ ");
-        List<Paciente> temp = new ArrayList<>(filaProntos);
-        for (Paciente p : temp) {
-            System.out.print(p.getNome() + "(" + p.getBurst() + ") ");
+        logInline("Fila de Espera: [ ");
+        for (Paciente p : filaProntos) {
+            logInline(p.getNome() + " ");
         }
         log("]");
     }
 
-    public void executar() {
+
+        public void executar() {
         if (idMedico == 1) {
             printHeader();
         }
@@ -128,7 +128,7 @@ public class ShortestJobFirst {
                         if (p.getArrival() == tempoAtual && p.getRemaining() == p.getBurst()) {
                             filaProntos.add(p);
                             log("[Tempo " + tempoAtual + "] Nova chegada: " +
-                                    p.getNome() + " (Burst: " + p.getBurst() + ")");
+                                    p.getNome() );
                         }
                     }
                 }
@@ -140,7 +140,7 @@ public class ShortestJobFirst {
                     pacienteAtual = filaProntos.poll(); // Pega o de menor burst
 
                     log("[Médico " + idMedico + "] TROCA DE CONTEXTO → iniciou " +
-                            pacienteAtual.getNome() + " (Burst: " + pacienteAtual.getBurst() + ")");
+                            pacienteAtual.getNome());
                     trocasContextoPorMedico.put(idMedico, trocasContextoPorMedico.get(idMedico) + 1);
 
                     pacienteAtualPorMedico.put(idMedico, pacienteAtual);

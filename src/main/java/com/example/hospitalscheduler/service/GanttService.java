@@ -18,7 +18,7 @@ public class GanttService {
 
     public static GanttService getInstance() { return instance; }
 
-    public void add(String paciente, String medico, int start, int end) {
+    public void add(int paciente, String medico, int start, int end) {
         blocks.add(new GanttEvent(paciente, medico, start, end));
         time = end;
     }

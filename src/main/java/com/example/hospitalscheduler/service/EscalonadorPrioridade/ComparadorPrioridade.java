@@ -1,3 +1,4 @@
+package com.example.hospitalscheduler.service.EscalonadorPrioridade;
 import java.util.Comparator;
 import com.example.hospitalscheduler.DTO.Paciente;
 class ComparadorPrioridade implements Comparator<Paciente> {

@@ -1,48 +1,67 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
 <head>
-  <meta charset="UTF-8">
-  <title>Resultado</title>
+    <meta charset="UTF-8">
+    <title>Resultado - Gráfico de Gantt</title>
 
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Bootstrap -->
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css">
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 </head>
 <body class="container mt-5">
 
-<h3>Gráfico de Gantt</h3>
+    <h2 class="mb-4">Resultado da Simulação</h2>
 
-<canvas id="ganttChart"></canvas>
+    <canvas id="ganttChart" height="200"></canvas>
 
-<script>
-    const eventos = [[${gantt}]];
+    <script th:inline="javascript">
 
-    const labels = eventos.map(e => e.paciente);
-    const data = eventos.map(e => ({
-        x: [e.start, e.end],
-        y: e.paciente
-    }));
+        // Lista de eventos vindo do backend
+        const eventos = /*[[${gantt}]]*/ [];
 
-    new Chart(document.getElementById("ganttChart"), {
-        type: 'bar',
-        data: {
-            labels: labels,
-            datasets: [{
-                data: data,
-                barThickness: 20
-            }]
-        },
-        options: {
-            indexAxis: 'y',
-            responsive: true,
-            plugins: {
-                legend: { display: false }
+        // Labels (cada paciente)
+        const labels = eventos.map(e => e.paciente);
+
+        // Dados do gráfico
+        const data = eventos.map(e => ({
+            x: [e.start, e.end],
+            y: e.paciente
+        }));
+
+        new Chart(document.getElementById("ganttChart"), {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Execução',
+                    data: data,
+                    barThickness: 20
+                }]
             },
-            scales: {
-                x: { stacked: true },
-                y: { stacked: true }
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    x: {
+                        stacked: true,
+                        title: { display: true, text: 'Tempo' }
+                    },
+                    y: {
+                        stacked: true,
+                        title: { display: true, text: 'Paciente' }
+                    }
+                }
             }
-        }
-    });
-</script>
+        });
+
+    </script>
 
 </body>
 </html>

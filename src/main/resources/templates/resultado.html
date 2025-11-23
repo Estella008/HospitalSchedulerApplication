@@ -96,5 +96,33 @@
         addLine("\n--- Simulação interrompida ---");
     });
 </script>
+
+<script>
+    window.onload = function() {
+        const dados = localStorage.getItem("resultadoSimulacao");
+
+        if (dados) {
+            const resultado = JSON.parse(dados);
+            const box = document.getElementById("outputBox");
+
+            // Exibe o Log de Texto
+            box.innerText = resultado.logExecucao;
+
+            // Opcional: Você pode criar elementos HTML específicos para as métricas se quiser mostrá-las fora da caixa de texto
+            // Exemplo: document.getElementById("spanEspera").innerText = resultado.tempoMedioEspera;
+        } else {
+            document.getElementById("outputBox").innerText = "Nenhum resultado encontrado. Execute a simulação novamente.";
+        }
+    };
+
+    document.getElementById("clearBtn").addEventListener("click", () => {
+        document.getElementById("outputBox").innerText = "";
+        localStorage.removeItem("resultadoSimulacao");
+    });
+
+    document.getElementById("stopBtn").addEventListener("click", () => {
+        window.location.href = "/"; // Volta para a home
+    });
+</script>
 </body>
 </html>

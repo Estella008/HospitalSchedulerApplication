@@ -2,10 +2,14 @@ package com.example.hospitalscheduler.contoller;
 
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RestController;
 
 @Controller
 public class HelloController {
+
+    @GetMapping("/resultado.html") // <--- ESSENCIAL PARA O REDIRECIONAMENTO
+    public String resultado() {
+        return "resultado";
+    }
 
     @GetMapping("/")
     public String home() {

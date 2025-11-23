@@ -33,9 +33,11 @@ public class Medico implements Runnable{
             case "RR":
                  executarRR(paciente, quantum);
                  return true;
+                 /*
             case "SJF":
                  executarSJF(paciente);
                 return true;
+                  */
             case "SRTF":
                 executarSRTF(paciente);
                 return true;
@@ -64,12 +66,13 @@ public class Medico implements Runnable{
         return "RR executado com quantum = " + quantum + " e núcleos";
     }
 
+    /*
     private Object executarSJF(Paciente paciente) {
         ShortestJobFirst sjf = new ShortestJobFirst(paciente);
         sjf.executar();
         //alterar o retorno para se executar retorno true se não retorne false
         return "SJF (Shortest Job First) executado com  núcleos.";
-    }
+    }*/
 
     @Override
     public void run() {

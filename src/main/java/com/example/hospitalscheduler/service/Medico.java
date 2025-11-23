@@ -52,8 +52,9 @@ public class Medico implements Runnable {
     }
 
     private void executarSJF() {
-        // TODO: Implementar SJF paralelo
-        System.out.println("[Médico " + idMedico + "] SJF não implementado ainda");
+        // Médico participa da execução paralela do SJF
+       ShortestJobFirst sjt = new ShortestJobFirst(idMedico,filaPacientes);
+       sjt.executar();
     }
 
     private void executarPrioridade() {

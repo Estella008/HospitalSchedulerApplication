@@ -3,23 +3,27 @@ package com.example.hospitalscheduler.service;
 import com.example.hospitalscheduler.DTO.Paciente;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 public class Medico implements Runnable{
+    private int idMedico;
     private static String algoritimo;
     private static List<Paciente> filaPacientes = new ArrayList<>();
     private static Integer quantumMax;
     //quando finalizar deixar  false
     static public boolean iniciou;
     //usado na primeira chamada
-    public Medico(String algoritimoSelecinado,Integer quantum ,List<Paciente> listaPacientes){
+    public Medico(int idMedico,String algoritimoSelecinado,Integer quantum ,List<Paciente> listaPacientes){
+        this.idMedico = idMedico;
         algoritimo = algoritimoSelecinado;
         filaPacientes = listaPacientes;
         quantumMax = quantum;
         iniciou = true;
     }
     //usado nas outras chamadas
-    public Medico(){
+    public Medico(int idMedico){
+        this.idMedico = idMedico;
     }
 
     public synchronized void adicionar(Paciente paciente) {
@@ -51,7 +55,11 @@ public class Medico implements Runnable{
         }
     }
 
+
+
     private Object executarSRTF(Paciente paciente) {
+        ShortestRemaining shortestRemaining = new ShortestRemaining(idMedico, paciente);
+        shortestRemaining.executar();
         return "SRTF executado";
     }
 

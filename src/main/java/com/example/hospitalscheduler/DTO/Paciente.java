@@ -1,7 +1,7 @@
 package com.example.hospitalscheduler.DTO;
 
 public class Paciente {
-    private int nome;
+    private String nome;
     private int arrival;
     private int burst;
     private int priority;
@@ -31,7 +31,7 @@ public class Paciente {
         return nome;
     }
 
-    public void setNome(int nome) {
+    public void setNome(String nome) {
         this.nome = nome;
     }
 

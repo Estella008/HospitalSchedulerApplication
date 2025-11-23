@@ -137,8 +137,15 @@ public class ShortestJobFirst {
 
                     // Verifica se finalizou (SJF NÃO interrompe no meio)
                     if (pacienteAtual.getRemaining() == 0) {
+
+                        pacienteAtual.setTempoFinalizacao(tempoAtual + 1);
+                        pacienteAtual.setTurnaround(tempoAtual - pacienteAtual.getArrival());
+                        pacienteAtual.setTempoEspera(pacienteAtual.getTurnaround() - pacienteAtual.getBurst());
+                        // =====================================
+
                         System.out.println("[Médico " + idMedico + "] FINALIZADO → " +
                                 pacienteAtual.getNome());
+
                         pacienteAtualPorMedico.put(idMedico, null);
                         finalizados.incrementAndGet();
                     }
@@ -196,6 +203,41 @@ public class ShortestJobFirst {
         }
 
         System.out.println("Tempo Total de Simulação: " + tempoAtual);
+
+        // ============================================
+        //         MÉTRICAS DE DESEMPENHO (NOVO)
+        // ============================================
+
+        System.out.println("\n--- MÉTRICAS POR PACIENTE ---");
+
+        double somaTurnaround = 0;
+        double somaEspera = 0;
+
+        for (Paciente p : pacientes) {
+
+            int turnaround = p.getTempoFinalizacao() - p.getArrival();
+            int espera = turnaround - p.getBurst();
+
+            p.setTurnaround(turnaround);
+            p.setTempoEspera(espera);
+
+            somaTurnaround += turnaround;
+            somaEspera += espera;
+
+            System.out.println("Paciente " + p.getNome()
+                    + " | Finalização: " + p.getTempoFinalizacao()
+                    + " | Turnaround: " + turnaround
+                    + " | Espera: " + espera
+            );
+        }
+
+        double avgTurnaround = somaTurnaround / pacientes.size();
+        double avgEspera = somaEspera / pacientes.size();
+
+        System.out.println("\n--- MÉTRICAS GERAIS ---");
+        System.out.println("Tempo Médio de Execução (Turnaround): " + String.format("%.2f", avgTurnaround));
+        System.out.println("Tempo Médio de Espera: " + String.format("%.2f", avgEspera));
+
         System.out.println("\nFim da simulação.\n");
     }
 

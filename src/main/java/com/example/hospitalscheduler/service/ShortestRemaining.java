@@ -68,7 +68,45 @@ public class ShortestRemaining {
             return logCapturado.toString();
         }
     }
+    private void printFilaEspera() {
+        // Identifica quem está sendo executado neste momento
+        Set<Integer> executando = new HashSet<>();
+        for (int i = 1; i <= ganttPorMedico.size(); i++) {
+            StringBuilder gantt = ganttPorMedico.get(i);
+            if (gantt != null && gantt.length() > 0) {
+                String[] partes = gantt.toString().split("\\|");
+                if (partes.length > 0) {
+                    String ultimo = partes[partes.length - 1];
+                    if (!ultimo.equals("ocioso")) {
+                        try {
+                            executando.add(Integer.parseInt(ultimo));
+                        } catch (NumberFormatException e) {
+                            // Ignora
+                        }
+                    }
+                }
+            }
+        }
 
+        // Lista pacientes que já chegaram, não finalizaram e não estão executando
+        List<Paciente> naFila = new ArrayList<>();
+        for (Paciente p : pacientes) {
+            if (p.getArrival() <= tempoAtual &&
+                    p.getRemaining() > 0 &&
+                    !executando.contains(p.getNome())) {
+                naFila.add(p);
+            }
+        }
+
+        // Ordena por arrival (ordem de chegada)
+        naFila.sort(Comparator.comparingInt(Paciente::getArrival));
+
+        logInline("Fila de Espera: [ ");
+        for (Paciente p : naFila) {
+            logInline(p.getNome() + " ");
+        }
+        log("]");
+    }
     private void printHeader() {
         synchronized (lock) {
             log("\n========================================");
@@ -99,6 +137,13 @@ public class ShortestRemaining {
         Paciente pacienteAtual = null;
         int total = pacientes.size();
 
+        if (idMedico == 1) {
+            log("--------------------------------------");
+            log("[Tempo " + tempoAtual + "]");
+            printFilaEspera();
+            log("--------------------------------------");
+        }
+
         while (sistemaAtivo && finalizados.get() < total) {
 
             synchronized (lock) {
@@ -108,6 +153,7 @@ public class ShortestRemaining {
                 for (Paciente p : pacientes) {
                     if (p.getArrival() <= tempoAtual && p.getRemaining() > 0) {
                         disponiveis.add(p);
+                        log("[Tempo " + tempoAtual + "] Nova chegada: " + p.getNome());
                     }
                 }
 
@@ -187,6 +233,12 @@ public class ShortestRemaining {
                 // Avança o tempo
                 if (idMedico == 1) {
                     tempoAtual++;
+                    if (finalizados.get() < total) {
+                        log("\n--------------------------------------");
+                        log("[Tempo " + tempoAtual + "]");
+                        printFilaEspera();
+                        log("--------------------------------------");
+                    }
                 }
             }
 

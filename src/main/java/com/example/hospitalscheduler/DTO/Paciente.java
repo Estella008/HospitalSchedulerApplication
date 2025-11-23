@@ -9,6 +9,7 @@ public class Paciente {
     private int tempoFinalizacao;
     private int tempoEspera;
     private int turnaround;
+    
 
     public int getArrival() { return arrival; }
     public void setArrival(int arrival) { this.arrival = arrival; }

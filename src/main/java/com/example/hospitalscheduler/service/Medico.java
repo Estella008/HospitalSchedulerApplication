@@ -58,8 +58,9 @@ public class Medico implements Runnable {
     }
 
     private void executarPrioridade() {
-        // TODO: Implementar Prioridade paralelo
-        System.out.println("[Médico " + idMedico + "] Prioridade não implementado ainda");
+        // Médico participa da execução paralela do Prioridade
+        Prioridade prio = new Prioridade(idMedico, filaPacientes);
+        prio.executar();
     }
 
     private void executarRR() {

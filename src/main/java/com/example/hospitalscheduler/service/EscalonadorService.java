@@ -55,9 +55,7 @@ public class EscalonadorService {
             case "SJF":
                 return ShortestJobFirst.getLogs();
             case "PRIORIDADE":
-                // TODO: Adicionar quando implementar
-                // return Prioridade.getLogs();
-                return "Prioridade não implementado ainda";
+                return Prioridade.getLogs();
             default:
                 return "Algoritmo desconhecido: " + algoritmo;
         }
@@ -78,8 +76,7 @@ public class EscalonadorService {
                 ShortestJobFirst.reset();
                 break;
             case "PRIORIDADE":
-                // TODO: Adicionar quando implementar
-                // Prioridade.reset();
+                Prioridade.reset();
                 break;
             default:
                 System.err.println("Algoritmo desconhecido: " + algoritmo);

@@ -110,7 +110,7 @@ public class ShortestRemaining {
     private void printHeader() {
         synchronized (lock) {
             log("\n========================================");
-            log("   EXECUÇÃO SRTF - MÉDICO " + idMedico);
+            log("   EXECUÇÃO SRTF - MÉDICO " );
             log("========================================");
             log("Total de Pacientes: " + pacientes.size());
             for (Paciente p : pacientes) {

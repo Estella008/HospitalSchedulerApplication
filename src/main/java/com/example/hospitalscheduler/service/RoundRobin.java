@@ -85,7 +85,7 @@ public class RoundRobin {
     private void printHeader() {
         synchronized (lock) {
             log("\n========================================");
-            log("   EXECUÇÃO ROUND ROBIN - MÉDICO " + idMedico);
+            log("   EXECUÇÃO ROUND ROBIN ");
             log("========================================");
             log("Total de Pacientes: " + pacientes.size());
             log("Quantum: " + quantum);

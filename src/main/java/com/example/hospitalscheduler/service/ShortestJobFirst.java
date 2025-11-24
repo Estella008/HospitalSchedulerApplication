@@ -83,7 +83,7 @@ public class ShortestJobFirst {
     private void printHeader() {
         synchronized (lock) {
             log("\n========================================");
-            log("   EXECUÇÃO SJF - MÉDICO " + idMedico);
+            log("   EXECUÇÃO SJF  " );
             log("========================================");
             log("Total de Pacientes: " + pacientes.size());
             for (Paciente p : pacientes) {

@@ -1,6 +1,7 @@
 # Hospital Scheduler Application 🏥⏱️
 
-> **Trabalho da disciplina de Sistemas Operacionais** > **Curso:** Sistemas de Informação  
+> **Trabalho da disciplina de Sistemas Operacionais**  
+> **Curso:** Sistemas de Informação  
 > **Instituição:** IFMG (Instituto Federal de Minas Gerais)  
 
 Este projeto consiste numa aplicação **Spring Boot** que simula o funcionamento de algoritmos clássicos de escalonamento de CPU, aplicando-os metaforicamente a um contexto de triagem e atendimento hospitalar.
@@ -54,8 +55,8 @@ Nesta simulação, os conceitos de SO são mapeados da seguinte forma:
 
 1.  **Clone o repositório:**
     ```bash
-    git clone [https://github.com/seu-usuario/hospital-scheduler.git](https://github.com/seu-usuario/hospital-scheduler.git)
-    cd hospital-scheduler
+    git clone https://github.com/Estella008/HospitalSchedulerApplication.git
+    cd HospitalSchedulerApplication
     ```
 
 2.  **Execute a aplicação via Maven Wrapper:**
